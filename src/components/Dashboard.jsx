@@ -97,8 +97,8 @@ export default function Dashboard() {
       {/* Grid de métricas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Residentes activos */}
-        <div
-          className="cursor-pointer"
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => setSelectedMetric({
             title: 'Residentes Activos',
             value: metrics.total_residentes_activos || 0,
@@ -106,7 +106,6 @@ export default function Dashboard() {
             details: ['Status: Activos en el condominio', 'Últimas 24 horas: sin cambios']
           })}
         >
-          <Card className="hover:shadow-lg transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-success/10 rounded-lg">
@@ -122,12 +121,13 @@ export default function Dashboard() {
             </div>
             <Badge variant="success">Activo</Badge>
           </div>
-          </Card>
-        </div>
+        </Card>
 
         {/* Tickets abiertos */}
-        <div
-          className="cursor-pointer"
+        <Card
+          alert={hasUrgentTickets}
+          alertColor={hasUrgentTickets ? 'red' : 'amber'}
+          className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => setSelectedMetric({
             title: 'Tickets Abiertos',
             value: metrics.tickets_abiertos || 0,
@@ -139,11 +139,6 @@ export default function Dashboard() {
             ]
           })}
         >
-          <Card
-            alert={hasUrgentTickets}
-            alertColor={hasUrgentTickets ? 'red' : 'amber'}
-            className="hover:shadow-lg transition-shadow"
-          >
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className={`p-3 rounded-lg ${hasUrgentTickets ? 'bg-danger/10' : 'bg-warning/10'}`}>
@@ -163,12 +158,11 @@ export default function Dashboard() {
               {hasUrgentTickets ? 'Urgente' : 'Pendiente'}
             </Badge>
           </div>
-          </Card>
-        </div>
+        </Card>
 
         {/* Reservas próximas */}
-        <div
-          className="cursor-pointer"
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => setSelectedMetric({
             title: 'Reservas Próximas',
             value: metrics.reservas_proximas || 0,
@@ -176,7 +170,6 @@ export default function Dashboard() {
             details: ['Requieren 48h de anticipación', 'Una reserva activa por unidad máximo']
           })}
         >
-          <Card className="hover:shadow-lg transition-shadow">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary/10 rounded-lg">
@@ -192,12 +185,11 @@ export default function Dashboard() {
             </div>
             <Badge variant="neutral">Programado</Badge>
           </div>
-          </Card>
-        </div>
+        </Card>
 
         {/* Reclamos pendientes */}
-        <div
-          className="cursor-pointer"
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => setSelectedMetric({
             title: 'Reclamos Pendientes',
             value: metrics.reclamos_pendientes || 0,
@@ -220,8 +212,7 @@ export default function Dashboard() {
             </div>
             <Badge variant="warning">Pendiente</Badge>
           </div>
-          </Card>
-        </div>
+        </Card>
 
         {/* Turno conserje */}
         <Card>
