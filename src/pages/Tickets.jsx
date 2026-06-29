@@ -13,14 +13,8 @@ export default function Tickets({ user }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getTickets();
-      
-      const ticketsFiltrados = data.filter(ticket => {
-        if (user.role === 'admin') return true;
-        return ticket.residente_id === user.residente_id;
-      });
-      
-      setTickets(ticketsFiltrados);
+      const data = await getTickets(user.unidad);
+      setTickets(data);
     } catch (err) {
       setError(err.message || 'No se pudieron cargar los tickets.');
       setTickets([]);

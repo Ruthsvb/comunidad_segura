@@ -20,19 +20,10 @@ export default function Reservas({ user }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getReservas();
-      
-      // Aplicar regla de negocio: 
-      // Admin ve todo, residente ve solo sus reservas (basado en residente_id)
-      const reservasFiltradas = data.filter(reserva => {
-        if (user.role === 'admin') return true;
-        // Asumiendo que el campo en la BD es residente_id o id_residente
-        return reserva.residente_id === user.residente_id;
-      });
-      
-      setReservas(reservasFiltradas);
+      const data = await getReservas(user.unidad);
+      setReservas(data);
     } catch (err) {
-      setError(err.message || 'No se pudieron cargar las reservas de la base de datos.');
+      setError(err.message || 'No se pudieron cargar las reservas.');
       setReservas([]);
     } finally {
       setLoading(false);

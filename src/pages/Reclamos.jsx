@@ -23,14 +23,8 @@ export default function Reclamos({ user }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getReclamos();
-      
-      const reclamosFiltrados = data.filter(reclamo => {
-        if (user.role === 'admin') return true;
-        return reclamo.residente_id === user.residente_id;
-      });
-      
-      setReclamos(reclamosFiltrados);
+      const data = await getReclamos(user.unidad);
+      setReclamos(data);
     } catch (err) {
       setError(err.message || 'No se pudieron cargar los reclamos.');
       setReclamos([]);

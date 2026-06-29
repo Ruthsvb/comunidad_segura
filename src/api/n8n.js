@@ -55,11 +55,12 @@ export async function getStatus() {
 }
 
 /**
- * Obtiene la lista de tickets
+ * Obtiene la lista de tickets del residente
+ * @param {string} unidad - Unidad del residente para filtrar
  * @returns {Promise<Array>} Lista de tickets
  */
-export async function getTickets() {
-  const res = await fetch(`${BASE}/comunidad-segura/tickets`);
+export async function getTickets(unidad) {
+  const res = await fetch(`${BASE}/cs/tickets?unidad=${encodeURIComponent(unidad)}`);
   if (!res.ok) throw new Error('Error al cargar tickets');
   const data = await res.json();
   if (data.message === 'Error in workflow') throw new Error('El flujo de tickets en n8n tiene un error interno.');
@@ -76,7 +77,7 @@ export async function getTickets() {
  * @returns {Promise<Object>} Ticket creado
  */
 export async function createTicket({ titulo, descripcion, prioridad = 'normal', residente_id }) {
-  const res = await fetch(`${BASE}/tickets`, {
+  const res = await fetch(`${BASE}/cs/tickets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ titulo, descripcion, prioridad, residente_id })
@@ -91,11 +92,12 @@ export async function createTicket({ titulo, descripcion, prioridad = 'normal', 
 }
 
 /**
- * Obtiene la lista de reclamos
+ * Obtiene la lista de reclamos del residente
+ * @param {string} unidad - Unidad del residente para filtrar
  * @returns {Promise<Array>} Lista de reclamos
  */
-export async function getReclamos() {
-  const res = await fetch(`${BASE}/comunidad-segura/reclamos`);
+export async function getReclamos(unidad) {
+  const res = await fetch(`${BASE}/cs/reclamos?unidad=${encodeURIComponent(unidad)}`);
   if (!res.ok) throw new Error('Error al cargar reclamos');
   const data = await res.json();
   if (data.message === 'Error in workflow') throw new Error('El flujo de reclamos en n8n tiene un error interno.');
@@ -103,11 +105,12 @@ export async function getReclamos() {
 }
 
 /**
- * Obtiene la lista de gastos
+ * Obtiene la lista de gastos del residente
+ * @param {string} unidad - Unidad del residente para filtrar
  * @returns {Promise<Array>} Lista de gastos
  */
-export async function getGastos() {
-  const res = await fetch(`${BASE}/comunidad-segura/gastos`);
+export async function getGastos(unidad) {
+  const res = await fetch(`${BASE}/cs/gastos?unidad=${encodeURIComponent(unidad)}`);
   if (!res.ok) throw new Error('Error al cargar gastos');
   const data = await res.json();
   if (data.message === 'Error in workflow') throw new Error('El flujo de gastos en n8n tiene un error interno.');
@@ -115,19 +118,19 @@ export async function getGastos() {
 }
 
 /**
- * Obtiene la lista de reservas
+ * Obtiene la lista de reservas del residente
+ * @param {string} unidad - Unidad del residente para filtrar
  * @returns {Promise<Array>} Lista de reservas
  */
-export async function getReservas() {
-  const res = await fetch(`${BASE}/comunidad-segura/reservas`);
-  
+export async function getReservas(unidad) {
+  const res = await fetch(`${BASE}/cs/reservas?unidad=${encodeURIComponent(unidad)}`);
+
   if (!res.ok) {
     throw new Error('Error al cargar reservas');
   }
-  
+
   try {
     const data = await res.json();
-    // Si n8n devuelve { message: 'Error in workflow' } o similar
     if (data.message === 'Error in workflow') {
       throw new Error('El flujo de reservas en n8n tiene un error interno.');
     }
@@ -147,7 +150,7 @@ export async function getReservas() {
  * @returns {Promise<Object>} Reserva creada
  */
 export async function createReserva({ espacio, fecha_inicio, fecha_fin, residente_id }) {
-  const res = await fetch(`${BASE}/reservas`, {
+  const res = await fetch(`${BASE}/cs/reservas`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ espacio, fecha_inicio, fecha_fin, residente_id })
@@ -170,7 +173,7 @@ export async function createReserva({ espacio, fecha_inicio, fecha_fin, resident
  * @returns {Promise<Object>} Reclamo creado
  */
 export async function createReclamo({ tipo, descripcion, residente_id }) {
-  const res = await fetch(`${BASE}/reclamos`, {
+  const res = await fetch(`${BASE}/cs/reclamos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tipo, descripcion, residente_id })

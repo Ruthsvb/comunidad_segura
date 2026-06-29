@@ -13,14 +13,8 @@ export default function Gastos({ user }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getGastos();
-      
-      const gastosFiltrados = data.filter(gasto => {
-        if (user.role === 'admin') return true;
-        return gasto.residente_id === user.residente_id;
-      });
-      
-      setGastos(gastosFiltrados);
+      const data = await getGastos(user.unidad);
+      setGastos(data);
     } catch (err) {
       setError(err.message || 'No se pudieron cargar los gastos.');
       setGastos([]);
