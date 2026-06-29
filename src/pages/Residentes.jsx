@@ -51,11 +51,13 @@ export default function Residentes({ user }) {
     );
   }
 
-  const filteredResidentes = residentes.filter(r => 
-    r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.unidad.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredResidentes = residentes.filter(r => {
+    const search = searchTerm.toLowerCase();
+    const nombre = (r.nombre || '').toLowerCase();
+    const apellido = (r.apellido || '').toLowerCase();
+    const unidad = (r.unidad || '').toLowerCase();
+    return nombre.includes(search) || apellido.includes(search) || unidad.includes(search);
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -95,22 +97,30 @@ export default function Residentes({ user }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filteredResidentes.map((residente) => (
-                  <tr key={residente.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center font-bold">
-                          {residente.unidad.split('-')[0]}
+                {filteredResidentes.map((residente) => {
+                  const initialName = (residente.nombre || 'U').charAt(0);
+                  const initialLastName = (residente.apellido || 'N').charAt(0);
+                  const unidadShort = (residente.unidad || '?').split('-')[0];
+
+                  return (
+                    <tr key={residente.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center font-bold">
+                            {unidadShort}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-700">{residente.unidad || 'Sin unidad'}</p>
+                            <p className="text-xs text-slate-400 capitalize">{residente.tipo_unidad || residente.rol || 'Residente'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-700">{residente.unidad}</p>
-                          <p className="text-xs text-slate-400 capitalize">{residente.tipo_unidad}</p>
+                      </td>
+                      <td className="py-4 px-6 flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-primary/20 text-primary flex items-center justify-center font-bold mr-3 border border-blue-200">
+                          {initialName}{initialLastName}
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <p className="font-semibold text-slate-800">{residente.nombre} {residente.apellido}</p>
-                    </td>
+                        <p className="font-semibold text-slate-800">{residente.nombre || ''} {residente.apellido || ''}</p>
+                      </td>
                     <td className="py-4 px-6 text-sm text-slate-500">
                       <p>{residente.email || 'Sin email'}</p>
                       <p>{residente.telefono || 'Sin teléfono'}</p>
@@ -137,7 +147,8 @@ export default function Residentes({ user }) {
                       })()}
                     </td>
                   </tr>
-                ))}
+                );
+                })}
                 {filteredResidentes.length === 0 && (
                   <tr>
                     <td colSpan="4" className="py-8 text-center text-gray-500">

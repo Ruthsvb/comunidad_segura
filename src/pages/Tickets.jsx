@@ -1,48 +1,40 @@
-import React, { useState } from 'react';
-import { Plus, Wrench, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Wrench, AlertTriangle, CheckCircle, Clock, X, RefreshCw } from 'lucide-react';
 import TicketForm from '../components/TicketForm';
-
-const MOCK_TICKETS = [
-  {
-    id: '#1',
-    titulo: 'Ascensor',
-    descripcion: 'El ascensor del bloque A se detiene en piso 3 sin razón aparente y hace ruido fuerte.',
-    prioridad: 'alta',
-    estado: 'En proceso',
-    fecha: '15/06/2026'
-  },
-  {
-    id: '#2',
-    titulo: 'Fuga de agua',
-    descripcion: 'Hay una filtración de agua en el pasillo principal del piso 1.',
-    prioridad: 'urgente',
-    estado: 'Abierto',
-    fecha: '20/06/2026'
-  },
-  {
-    id: '#3',
-    titulo: 'Luz pasillo',
-    descripcion: 'La luz del pasillo frente a mi departamento está quemada.',
-    prioridad: 'baja',
-    estado: 'Resuelto',
-    fecha: '01/06/2026'
-  }
-];
+import { getTickets } from '../api/n8n';
 
 export default function Tickets({ user }) {
   const [showForm, setShowForm] = useState(false);
-  const [tickets, setTickets] = useState(MOCK_TICKETS);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTickets();
+      
+      const ticketsFiltrados = data.filter(ticket => {
+        if (user.role === 'admin') return true;
+        return ticket.residente_id === user.residente_id;
+      });
+      
+      setTickets(ticketsFiltrados);
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar los tickets.');
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, [user]);
 
   const handleTicketCreated = (newTicket) => {
-    // Agregar ticket creado a la lista
-    setTickets(prev => [{
-      id: `#${newTicket.id}`,
-      titulo: newTicket.titulo,
-      descripcion: newTicket.descripcion,
-      prioridad: newTicket.prioridad,
-      estado: 'Abierto',
-      fecha: new Date().toLocaleDateString('es-CL')
-    }, ...prev]);
+    fetchTickets();
     setShowForm(false);
   };
 
@@ -85,41 +77,74 @@ export default function Tickets({ user }) {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {tickets.map((ticket) => (
-          <div 
-            key={ticket.id} 
-            className={`bg-card p-5 rounded-xl border-l-4 border-y border-r border-y-gray-200 border-r-gray-200 shadow-sm flex flex-col sm:flex-row justify-between gap-4 ${getPrioridadColor(ticket.prioridad).split(' ')[0]}`}
-          >
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-gray-500 font-bold">{ticket.id}</span>
-                <h3 className="text-lg font-bold text-primary">{ticket.titulo}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded font-bold uppercase border ${getPrioridadColor(ticket.prioridad)}`}>
-                  {ticket.prioridad}
-                </span>
-              </div>
-              <p className="text-gray-600 text-sm mb-4">"{ticket.descripcion}"</p>
-              
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 font-medium">
-                <div className="flex items-center gap-1.5">
-                  <Wrench className="w-4 h-4" />
-                  Estado: <span className="text-primary">{ticket.estado}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  Creado: {ticket.fecha}
-                </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <h2 className="font-bold text-gray-700">Tus Tickets</h2>
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+              <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4" />
+              <p>Cargando tickets desde la base de datos...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 text-danger p-6 rounded-xl flex items-start gap-4">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <div>
+                <h3 className="font-bold">Error de conexión</h3>
+                <p className="text-sm mt-1">{error}</p>
+                <p className="text-sm mt-2 font-mono bg-red-100/50 p-2 rounded">
+                  La API en n8n devolvió un error (Posiblemente el Webhook de tickets no está activo o configurado correctamente).
+                </p>
               </div>
             </div>
-            
-            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-gray-100 pt-4 sm:pt-0 sm:pl-4">
-               <button className="text-secondary hover:text-secondary/80 font-medium text-sm underline-offset-2 hover:underline">
-                 Ver detalle
-               </button>
+          ) : tickets.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              No hay tickets registrados.
             </div>
-          </div>
-        ))}
+          ) : (
+            <div className="space-y-4">
+              {tickets.map((ticket) => {
+                const fechaFormat = ticket.fecha_creacion || ticket.created_at 
+                  ? new Date(ticket.fecha_creacion || ticket.created_at).toLocaleDateString('es-CL') 
+                  : (ticket.fecha || 'Sin fecha');
+
+                return (
+                  <div key={ticket.id} className="border border-gray-200 rounded-xl p-5 hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-mono text-gray-500 font-semibold uppercase">#{ticket.id}</span>
+                          <h3 className="font-bold text-gray-800 text-lg">{ticket.titulo || 'Sin título'}</h3>
+                          <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-full border ${getPrioridadColor(ticket.prioridad?.toLowerCase())}`}>
+                            {ticket.prioridad || 'normal'}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                          {ticket.descripcion || 'Sin descripción'}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs font-semibold text-gray-500">
+                          <span className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-md">
+                            <Clock size={14} /> {fechaFormat}
+                          </span>
+                          <span className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-md capitalize">
+                            <CheckCircle size={14} className={ticket.estado?.toLowerCase() === 'resuelto' ? 'text-success' : 'text-gray-400'} />
+                            {ticket.estado || 'Abierto'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 min-w-[120px]">
+                        <button className="w-full bg-white border border-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                          Ver detalles
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
     </div>

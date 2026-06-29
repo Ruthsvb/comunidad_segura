@@ -44,7 +44,23 @@ export default function Dashboard({ user }) {
     );
   }
 
-  const { residentes, tickets, reservas, reclamos, multa_activa, turno } = data || {};
+  // El webhook de n8n devuelve { ok: true, data: { residentes_totales: "8", ... } }
+  // O en el mock: { residentes: { total: 8 }, ... }
+  
+  // Extraer el payload principal
+  let payload = data?.data || data || {};
+  if (Array.isArray(payload)) {
+    payload = payload[0] || {};
+  }
+  
+  // Mapear los datos de n8n al formato del frontend
+  const residentesCount = parseInt(payload.residentes_totales || payload.residentes?.total || 0, 10);
+  const ticketsAbiertos = parseInt(payload.tickets_abiertos || payload.tickets?.abiertos || 0, 10);
+  const ticketsUrgentes = parseInt(payload.tickets_urgentes || payload.tickets?.urgentes || 0, 10);
+  const reservasCount = parseInt(payload.reservas_proximas || payload.reservas?.proximas || 0, 10);
+  const reclamosCount = parseInt(payload.reclamos_abiertos || payload.reclamos?.abiertos || 0, 10);
+  const multa_activa = payload.multaGastosActiva ?? payload.multa_activa ?? false;
+  const turno = typeof payload.turnoConserje === 'string' ? { periodo: payload.turnoConserje, update: 'Reciente' } : payload.turno || { periodo: 'mañana', update: '12:00' };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -68,11 +84,7 @@ export default function Dashboard({ user }) {
         </div>
       )}
 
-      {/* Turno Conserje (visible para todos) */}
-      <div className="bg-white px-4 py-3 rounded-lg border border-gray-100 flex items-center gap-3 text-sm text-gray-600">
-        <Clock className="w-5 h-5 text-gray-400" />
-        <span>Turno actual: <strong className="capitalize text-primary">{turno?.periodo || 'mañana'}</strong> · Último update: {turno?.update || '12:00'}</span>
-      </div>
+
 
       {user.role === 'admin' ? (
         /* VISTA ADMINISTRADOR: Métricas Globales */
@@ -80,43 +92,52 @@ export default function Dashboard({ user }) {
           {/* Residentes */}
           <Link to="/residentes" className="block bg-gradient-to-br from-white to-blue-50/50 p-6 rounded-2xl border border-blue-100 shadow-lg shadow-blue-900/5 cursor-pointer hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity group-hover:scale-110 duration-500">
-              <Users className="w-24 h-24 text-secondary" />
+              <Users className="w-24 h-24 text-blue-500" />
             </div>
             <div className="flex items-center gap-3 mb-4 text-gray-600 relative z-10">
-              <div className="p-2.5 bg-blue-100 text-secondary rounded-xl">
+              <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
                 <Users className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-gray-700 tracking-wide uppercase text-sm">Residentes</h3>
             </div>
-            <div className="text-4xl font-mono font-black text-primary relative z-10">{residentes?.total || 0}</div>
+            <div className="text-4xl font-mono font-black text-primary relative z-10">
+              {residentesCount}
+            </div>
             <div className="flex items-center justify-between mt-2 relative z-10">
-              <p className="text-sm font-semibold text-success flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                {residentes?.activos || 0} activos
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                </span>
+                <p className="text-sm font-semibold text-success">
+                  {residentesCount} activos
+                </p>
+              </div>
               <span className="text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">Ver directorio →</span>
             </div>
           </Link>
 
           {/* Tickets */}
-          <Link to="/tickets" className={`block p-6 rounded-2xl border shadow-lg cursor-pointer hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group ${tickets?.urgentes > 0 ? 'bg-gradient-to-br from-white to-red-50 border-red-200 shadow-red-900/10' : 'bg-gradient-to-br from-white to-orange-50 border-orange-100 shadow-orange-900/5'}`}>
+          <Link to="/tickets" className={`block p-6 rounded-2xl border shadow-lg cursor-pointer hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group ${ticketsUrgentes > 0 ? 'bg-gradient-to-br from-white to-red-50 border-red-200 shadow-red-900/10' : 'bg-gradient-to-br from-white to-orange-50 border-orange-100 shadow-orange-900/5'}`}>
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity group-hover:scale-110 duration-500">
-              <Ticket className={`w-24 h-24 ${tickets?.urgentes > 0 ? 'text-danger' : 'text-warning'}`} />
+              <Ticket className={`w-24 h-24 ${ticketsUrgentes > 0 ? 'text-danger' : 'text-warning'}`} />
             </div>
             <div className="flex items-center justify-between mb-4 relative z-10">
               <div className="flex items-center gap-3 text-gray-600">
-                <div className={`p-2.5 rounded-xl ${tickets?.urgentes > 0 ? 'bg-red-100 text-danger' : 'bg-orange-100 text-warning'}`}>
+                <div className={`p-2.5 rounded-xl ${ticketsUrgentes > 0 ? 'bg-red-100 text-danger' : 'bg-orange-100 text-warning'}`}>
                   <Ticket className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-gray-700 tracking-wide uppercase text-sm">Tickets</h3>
               </div>
-              {tickets?.urgentes > 0 && (
+              {ticketsUrgentes > 0 && (
                 <span className="bg-danger text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider animate-pulse">
-                  {tickets.urgentes} URGENTE
+                  {ticketsUrgentes} URGENTE
                 </span>
               )}
             </div>
-            <div className="text-4xl font-mono font-black text-primary relative z-10">{tickets?.abiertos || 0}</div>
+            <div className="text-4xl font-mono font-black text-primary relative z-10">
+              {ticketsAbiertos}
+            </div>
             <div className="flex items-center justify-between mt-2 relative z-10">
               <p className="text-sm font-semibold text-gray-500">abiertos</p>
               <span className="text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
@@ -134,7 +155,9 @@ export default function Dashboard({ user }) {
               </div>
               <h3 className="font-bold text-gray-700 tracking-wide uppercase text-sm">Reservas</h3>
             </div>
-            <div className="text-4xl font-mono font-black text-primary relative z-10">{reservas?.proximas || 0}</div>
+            <div className="text-4xl font-mono font-black text-primary relative z-10">
+              {reservasCount}
+            </div>
             <div className="flex items-center justify-between mt-2 relative z-10">
               <p className="text-sm font-semibold text-purple-600">próximas</p>
               <span className="text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
@@ -152,7 +175,9 @@ export default function Dashboard({ user }) {
               </div>
               <h3 className="font-bold text-gray-700 tracking-wide uppercase text-sm">Reclamos</h3>
             </div>
-            <div className="text-4xl font-mono font-black text-primary relative z-10">{reclamos?.abiertos || 0}</div>
+            <div className="text-4xl font-mono font-black text-primary relative z-10">
+              {reclamosCount}
+            </div>
             <div className="flex items-center justify-between mt-2 relative z-10">
               <p className="text-sm font-semibold text-gray-500">abiertos</p>
               <span className="text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>

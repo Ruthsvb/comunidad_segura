@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Plus, Volume2, Dog, Car, Shield, FileText, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Volume2, Dog, Car, Shield, FileText, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import ReclamoForm from '../components/ReclamoForm';
+import { getReclamos } from '../api/n8n';
 
 const MOTIVOS = [
   { id: 'ruido', label: 'Ruido Molesto', icon: Volume2, color: 'text-orange-500 bg-orange-50' },
@@ -10,24 +11,40 @@ const MOTIVOS = [
   { id: 'otro', label: 'Otro', icon: FileText, color: 'text-gray-500 bg-gray-50' },
 ];
 
-const MOCK_RECLAMOS = [
-  { id: 'R-101', motivo: 'ruido', descripcion: 'Música alta en piso 4 toda la noche.', fecha: '28/06/2026', estado: 'Revisión' }
-];
-
 export default function Reclamos({ user }) {
   const [showForm, setShowForm] = useState(false);
-  const [reclamos, setReclamos] = useState(MOCK_RECLAMOS);
+  const [reclamos, setReclamos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const getMotivoConfig = (id) => MOTIVOS.find(m => m.id === id) || MOTIVOS[4];
+  const getMotivoConfig = (id) => MOTIVOS.find(m => m.id?.toLowerCase() === (id || '').toLowerCase()) || MOTIVOS[4];
+
+  const fetchReclamos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getReclamos();
+      
+      const reclamosFiltrados = data.filter(reclamo => {
+        if (user.role === 'admin') return true;
+        return reclamo.residente_id === user.residente_id;
+      });
+      
+      setReclamos(reclamosFiltrados);
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar los reclamos.');
+      setReclamos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReclamos();
+  }, [user]);
 
   const handleReclamoCreated = (newReclamo) => {
-    setReclamos(prev => [{
-      id: `R-${Date.now()}`,
-      motivo: newReclamo.tipo,
-      descripcion: newReclamo.descripcion,
-      fecha: new Date().toLocaleDateString('es-CL'),
-      estado: 'Pendiente'
-    }, ...prev]);
+    fetchReclamos();
     setShowForm(false);
   };
 
@@ -75,25 +92,64 @@ export default function Reclamos({ user }) {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-primary">Mis Reclamos Recientes</h2>
-        {reclamos.map(reclamo => {
-          const config = getMotivoConfig(reclamo.motivo);
-          return (
-            <div key={reclamo.id} className="bg-card p-4 rounded-xl border border-gray-200 shadow-sm flex items-start gap-4">
-              <div className={`p-2 rounded-lg ${config.color}`}>
-                <config.icon className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-primary">{config.label}</h3>
-                  <span className="text-xs bg-gray-100 px-2 py-1 rounded font-semibold text-gray-600">{reclamo.estado}</span>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{reclamo.descripcion}</p>
-                <div className="text-xs text-gray-400 mt-2 font-mono">{reclamo.fecha} · ID: {reclamo.id}</div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="col-span-full flex flex-col items-center justify-center py-10 text-gray-500">
+            <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4" />
+            <p>Cargando reclamos desde la base de datos...</p>
+          </div>
+        ) : error ? (
+          <div className="col-span-full bg-red-50 text-danger p-6 rounded-xl flex items-start gap-4">
+            <AlertTriangle className="w-6 h-6 shrink-0" />
+            <div>
+              <h3 className="font-bold">Error de conexión</h3>
+              <p className="text-sm mt-1">{error}</p>
+              <p className="text-sm mt-2 font-mono bg-red-100/50 p-2 rounded">
+                La API en n8n devolvió un error (Posiblemente el Webhook de reclamos no está activo o configurado correctamente).
+              </p>
             </div>
-          )
-        })}
+          </div>
+        ) : reclamos.length === 0 ? (
+          <div className="col-span-full text-center py-10 text-gray-500">
+            No hay reclamos registrados.
+          </div>
+        ) : (
+          reclamos.map((reclamo) => {
+            const config = getMotivoConfig(reclamo.motivo || reclamo.tipo);
+            const Icon = config.icon;
+            const fechaFormat = reclamo.fecha_creacion || reclamo.created_at 
+              ? new Date(reclamo.fecha_creacion || reclamo.created_at).toLocaleDateString('es-CL') 
+              : (reclamo.fecha || 'Sin fecha');
+
+            return (
+              <div key={reclamo.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-3 rounded-xl ${config.color}`}>
+                    <Icon size={24} />
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                    #{reclamo.id}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-800 mb-2">{config.label}</h3>
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                  "{reclamo.descripcion}"
+                </p>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                  <span className="text-xs text-gray-400">{fechaFormat}</span>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                    reclamo.estado?.toLowerCase() === 'resuelto' ? 'bg-green-100 text-green-700' : 
+                    reclamo.estado?.toLowerCase() === 'revisión' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {reclamo.estado || 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+        </div>
       </div>
 
     </div>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, MapPin, Clock, Users, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, MapPin, Clock, Users, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import ReservaForm from '../components/ReservaForm';
+import { getReservas } from '../api/n8n';
 
 const MOCK_ESPACIOS = [
   { id: 1, nombre: 'Quincho', estado: 'disponible', icon: '🍖', capacidad: 20 },
@@ -9,22 +10,42 @@ const MOCK_ESPACIOS = [
   { id: 4, nombre: 'Cancha Multiuso', estado: 'disponible', icon: '🏃', capacidad: 10 },
 ];
 
-const MOCK_RESERVAS = [
-  { id: 1, espacio: 'Quincho', fecha: '05/07/2026', hora: '18:00 - 22:00', estado: 'confirmada' },
-];
-
 export default function Reservas({ user }) {
   const [showForm, setShowForm] = useState(false);
-  const [reservas, setReservas] = useState(MOCK_RESERVAS);
+  const [reservas, setReservas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchReservas = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getReservas();
+      
+      // Aplicar regla de negocio: 
+      // Admin ve todo, residente ve solo sus reservas (basado en residente_id)
+      const reservasFiltradas = data.filter(reserva => {
+        if (user.role === 'admin') return true;
+        // Asumiendo que el campo en la BD es residente_id o id_residente
+        return reserva.residente_id === user.residente_id;
+      });
+      
+      setReservas(reservasFiltradas);
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar las reservas de la base de datos.');
+      setReservas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReservas();
+  }, [user]);
 
   const handleReservaCreated = (newReserva) => {
-    setReservas(prev => [{
-      id: newReserva.id,
-      espacio: newReserva.espacio_comun,
-      fecha: new Date(newReserva.fecha_inicio).toLocaleDateString('es-CL'),
-      hora: `${newReserva.hora_inicio} - ${newReserva.hora_fin}`,
-      estado: newReserva.estado
-    }, ...prev]);
+    // Al crear exitosamente, volvemos a buscar a la base de datos para asegurar consistencia
+    fetchReservas();
     setShowForm(false);
   };
 
@@ -77,38 +98,69 @@ export default function Reservas({ user }) {
         ))}
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-accent" />
-          Mis Reservas
-        </h2>
-        {reservas.length === 0 ? (
-          <div className="bg-card rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-            <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No tienes reservas yet</p>
-          </div>
-        ) : (
-          reservas.map(reserva => (
-            <div key={reserva.id} className="bg-card rounded-xl border border-gray-200 p-4 shadow-sm flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-bold text-primary">{reserva.espacio}</h3>
-                <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
-                  <div className="flex items-center gap-1">
-                    <CalendarIcon size={16} />
-                    {reserva.fecha}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock size={16} />
-                    {reserva.hora}
-                  </div>
-                </div>
-              </div>
-              <span className="text-xs bg-success/10 text-success px-3 py-1 rounded-full font-semibold capitalize">
-                {reserva.estado}
-              </span>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-secondary" />
+          <h2 className="font-bold text-gray-700">Mis Reservas</h2>
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+              <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4" />
+              <p>Cargando reservas desde la base de datos...</p>
             </div>
-          ))
-        )}
+          ) : error ? (
+            <div className="bg-red-50 text-danger p-6 rounded-xl flex items-start gap-4">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <div>
+                <h3 className="font-bold">Error de conexión</h3>
+                <p className="text-sm mt-1">{error}</p>
+                <p className="text-sm mt-2 font-mono bg-red-100/50 p-2 rounded">
+                  La API en n8n devolvió un error (Posiblemente el Webhook de reservas no está activo o configurado correctamente).
+                </p>
+              </div>
+            </div>
+          ) : reservas.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              No tienes reservas registradas actualmente.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reservas.map((reserva) => {
+                const fechaInicio = new Date(reserva.fecha_inicio);
+                const fechaFin = reserva.fecha_fin ? new Date(reserva.fecha_fin) : null;
+                const fechaTexto = isNaN(fechaInicio) ? reserva.fecha || 'Fecha inválida' : fechaInicio.toLocaleDateString('es-CL');
+                const horaTexto = isNaN(fechaInicio) 
+                  ? reserva.hora || '' 
+                  : `${fechaInicio.toLocaleTimeString('es-CL', {hour: '2-digit', minute:'2-digit'})} - ${fechaFin ? fechaFin.toLocaleTimeString('es-CL', {hour: '2-digit', minute:'2-digit'}) : '...'}`;
+
+                return (
+                  <div key={reserva.id || Math.random()} className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="mb-4 md:mb-0">
+                      <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                        {reserva.espacio || reserva.espacio_comun || 'Espacio'}
+                      </h4>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
+                        <span className="flex items-center gap-1"><CalendarIcon size={14} /> {fechaTexto}</span>
+                        <span className="flex items-center gap-1"><Clock size={14} /> {horaTexto}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                        (reserva.estado || '').toLowerCase() === 'confirmada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {reserva.estado || 'Pendiente'}
+                      </span>
+                      <button className="text-danger hover:bg-red-50 p-2 rounded-lg transition-colors">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

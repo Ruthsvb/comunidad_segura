@@ -55,6 +55,18 @@ export async function getStatus() {
 }
 
 /**
+ * Obtiene la lista de tickets
+ * @returns {Promise<Array>} Lista de tickets
+ */
+export async function getTickets() {
+  const res = await fetch(`${BASE}/comunidad-segura/tickets`);
+  if (!res.ok) throw new Error('Error al cargar tickets');
+  const data = await res.json();
+  if (data.message === 'Error in workflow') throw new Error('El flujo de tickets en n8n tiene un error interno.');
+  return Array.isArray(data) ? data : data.data || [];
+}
+
+/**
  * Crea un ticket de mantenimiento
  * @param {Object} params - Parámetros del ticket
  * @param {string} params.titulo - Título del ticket
@@ -75,6 +87,53 @@ export async function createTicket({ titulo, descripcion, prioridad = 'normal', 
   } catch (err) {
     if (!res.ok) throw new Error('Error al crear ticket')
     throw err
+  }
+}
+
+/**
+ * Obtiene la lista de reclamos
+ * @returns {Promise<Array>} Lista de reclamos
+ */
+export async function getReclamos() {
+  const res = await fetch(`${BASE}/comunidad-segura/reclamos`);
+  if (!res.ok) throw new Error('Error al cargar reclamos');
+  const data = await res.json();
+  if (data.message === 'Error in workflow') throw new Error('El flujo de reclamos en n8n tiene un error interno.');
+  return Array.isArray(data) ? data : data.data || [];
+}
+
+/**
+ * Obtiene la lista de gastos
+ * @returns {Promise<Array>} Lista de gastos
+ */
+export async function getGastos() {
+  const res = await fetch(`${BASE}/comunidad-segura/gastos`);
+  if (!res.ok) throw new Error('Error al cargar gastos');
+  const data = await res.json();
+  if (data.message === 'Error in workflow') throw new Error('El flujo de gastos en n8n tiene un error interno.');
+  return Array.isArray(data) ? data : data.data || [];
+}
+
+/**
+ * Obtiene la lista de reservas
+ * @returns {Promise<Array>} Lista de reservas
+ */
+export async function getReservas() {
+  const res = await fetch(`${BASE}/comunidad-segura/reservas`);
+  
+  if (!res.ok) {
+    throw new Error('Error al cargar reservas');
+  }
+  
+  try {
+    const data = await res.json();
+    // Si n8n devuelve { message: 'Error in workflow' } o similar
+    if (data.message === 'Error in workflow') {
+      throw new Error('El flujo de reservas en n8n tiene un error interno.');
+    }
+    return Array.isArray(data) ? data : data.data || [];
+  } catch (err) {
+    throw err;
   }
 }
 
