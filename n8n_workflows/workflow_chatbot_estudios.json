@@ -1,0 +1,859 @@
+{
+  "name": "Sabores & Eventos - Asistente IA (Telegram)",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "telegram_trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        256
+      ],
+      "webhookId": "33ff5b97-920f-4e0a-b52b-fc6172e0a3b5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "foto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voz"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "texto"
+        }
+      },
+      "id": "enrutar_por_tipo",
+      "name": "Enrutar por tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        48,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "mensaje_usuario",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalizar_texto",
+      "name": "Normalizar texto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "descargar_voz",
+      "name": "Descargar voz",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        368,
+        208
+      ],
+      "webhookId": "25293278-7183-4952-9c41-eeebbd56ca77"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer TU_API_KEY_GROQ"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "transcribir_audio",
+      "name": "Transcribir audio (Groq Whisper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2",
+              "name": "mensaje_usuario",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalizar_voz",
+      "name": "Normalizar voz",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "tableName": "chat_memory_sabores",
+        "contextWindowLength": 12
+      },
+      "id": "memoria_postgres",
+      "name": "Memoria Postgres (Supabase)",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1168,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Espacio de razonamiento privado, no visible para el cliente."
+      },
+      "id": "think",
+      "name": "Think",
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consulta la base de conocimiento en Google Sheets por pestaña: Carta, Paquetes_Catering, Menus_Catering, Servicios, FAQ_Politicas, Reservas_Horarios. Nunca respondas precios ni politicas de memoria.",
+        "documentId": {
+          "__rl": true,
+          "value": "1ItS_l7pKceuO_aod41dRuIfZqeWiyLtBdSNNoNWqZ7k",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $fromAI('hoja', 'Pestaña a leer: Paquetes_Catering, Menus_Catering, Servicios, Carta, FAQ_Politicas o Reservas_Horarios') }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "buscar_info_paquetes",
+      "name": "buscar_info_paquetes",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        1536,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "ruthsaraiveb@gmail.com",
+          "mode": "id"
+        },
+        "limit": 10,
+        "timeMin": "={{ $fromAI('fecha_inicio', 'Inicio ISO 8601') }}",
+        "timeMax": "={{ $fromAI('fecha_fin', 'Fin ISO 8601') }}",
+        "options": {}
+      },
+      "id": "verificar_disponibilidad",
+      "name": "verificar_disponibilidad",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1744,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ruthsaraiveb@gmail.com"
+        },
+        "start": "={{ $fromAI('inicio', 'Inicio ISO 8601') }}",
+        "end": "={{ $fromAI('fin', 'Fin ISO 8601') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $fromAI('email', 'Email del cliente') }}"
+          ],
+          "sendUpdates": "none",
+          "summary": "={{ $fromAI('titulo', 'Título del evento') }}"
+        }
+      },
+      "id": "agendar_reunion",
+      "name": "agendar_reunion",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $fromAI('email', 'email') }}",
+        "subject": "={{ $fromAI('asunto', 'asunto', 'string', 'Confirmación - Sabores & Eventos') }}",
+        "message": "={{ $fromAI('cuerpo', 'cuerpo') }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Sabores & Eventos"
+        }
+      },
+      "id": "enviar_confirmacion_email",
+      "name": "enviar_confirmacion_email",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        2160,
+        304
+      ],
+      "webhookId": "8b3e2e4a-2062-4b87-b714-b040a0b9dd4e"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "responder_telegram",
+      "name": "Responder (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        16
+      ],
+      "webhookId": "cc3ac65b-1eb5-40a2-9c9d-aeb43828db3b"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.photo[$json.message.photo.length - 1].file_id }}",
+        "additionalFields": {}
+      },
+      "id": "descargar_imagen",
+      "name": "Descargar imagen",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        688
+      ],
+      "webhookId": "eaf40991-4f39-41d3-ad94-5a2669795b8e"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"estilo_detectado\":{\"type\":\"string\"},\"colores_predominantes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"tipo_evento_sugerido\":{\"type\":\"string\"},\"complejidad_estimada\":{\"type\":\"string\",\"enum\":[\"baja\",\"media\",\"alta\"]},\"es_comida\":{\"type\":\"boolean\"},\"plato_detectado\":{\"type\":\"string\"},\"descripcion\":{\"type\":\"string\"}},\"required\":[\"estilo_detectado\",\"colores_predominantes\",\"tipo_evento_sugerido\",\"complejidad_estimada\",\"es_comida\",\"descripcion\"]}"
+      },
+      "id": "structured_output_parser",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ItS_l7pKceuO_aod41dRuIfZqeWiyLtBdSNNoNWqZ7k",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Referencias_Imagenes",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $now.toISO() }}",
+            "chat_id": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "estilo": "={{ $json.output.estilo_detectado }}",
+            "colores": "={{ ($json.output.colores_predominantes || []).join(', ') }}",
+            "complejidad": "={{ $json.output.complejidad_estimada }}",
+            "tipo_evento": "={{ $json.output.tipo_evento_sugerido }}",
+            "link_imagen": "={{ $('Telegram Trigger').item.json.message.photo[$('Telegram Trigger').item.json.message.photo.length - 1].file_id }}"
+          },
+          "schema": []
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "id": "registrar_analisis",
+      "name": "Registrar análisis (Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje_usuario }}",
+        "options": {
+          "systemMessage": "Ver documento de diseño (docs/Diseno_Prompts_y_Guardrails.pdf) para el prompt completo. Asistente de Sabores & Eventos: base de conocimiento (Sheets + web), memoria, agenda, email, multimodal, guardrails anti prompt-injection."
+        }
+      },
+      "id": "agente_ia",
+      "name": "Agente IA",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1152,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analiza la IMAGEN DE REFERENCIA y extrae estilo_detectado, colores_predominantes, tipo_evento_sugerido, complejidad_estimada, descripcion, es_comida y plato_detectado.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "analizar_imagen",
+      "name": "Analizar imagen",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        624,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "Claude Sonnet 4.6",
+          "mode": "list",
+          "value": "claude-sonnet-4-6"
+        },
+        "options": {}
+      },
+      "id": "claude_agente",
+      "name": "Claude (Agente)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1024,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {}
+      },
+      "id": "claude_vision",
+      "name": "Claude Visión",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "img1",
+              "name": "mensaje_usuario",
+              "type": "string",
+              "value": "=Un cliente envió una IMAGEN DE REFERENCIA. Estilo: {{ $('Analizar imagen').item.json.output.estilo_detectado }}. ¿Es comida?: {{ $('Analizar imagen').item.json.output.es_comida }}. Plato: {{ $('Analizar imagen').item.json.output.plato_detectado }}. Describe lo interpretado y si es comida crúzalo con la Carta."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "preparar_consulta_imagen",
+      "name": "Preparar consulta imagen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = 'audio.ogg';\n    item.binary.data.fileExtension = 'ogg';\n    item.binary.data.mimeType = 'audio/ogg';\n  }\n}\nreturn $input.all();"
+      },
+      "id": "renombrar_audio",
+      "name": "Renombrar audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Guarda un registro de cliente/lead en la tabla clientes_sabores: nombre, email, telefono (si lo dio), tipo (consulta/reunion/pedido) y detalle.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes_sabores",
+          "cachedResultName": "clientes_sabores"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "nombre": "={{ $fromAI('nombre', 'Nombre del cliente', 'string') }}",
+            "username": "={{ $('Telegram Trigger').item.json.message.chat.username || '' }}",
+            "email": "={{ $fromAI('email', 'Email si lo dio', 'string') }}",
+            "telefono": "={{ $fromAI('telefono', 'Telefono si lo dio', 'string') }}",
+            "tipo": "={{ $fromAI('tipo', 'consulta, reunion o pedido', 'string') }}",
+            "detalle": "={{ $fromAI('detalle', 'Resumen breve', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "registrar_cliente",
+      "name": "registrar_cliente",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        2368,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta la web oficial (faq.html) para FAQ y politicas: anticipacion, pagos, cancelaciones, degustaciones, restricciones.",
+        "url": "https://sabores-y-eventos.vercel.app/faq.html",
+        "options": {},
+        "optimizeResponse": true,
+        "responseType": "html",
+        "onlyContent": true
+      },
+      "id": "consultar_web_faq",
+      "name": "consultar_web_faq",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        2528,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutar por tipo": {
+      "main": [
+        [
+          {
+            "node": "Descargar imagen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar voz",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalizar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar texto": {
+      "main": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar voz": {
+      "main": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente IA": {
+      "main": [
+        [
+          {
+            "node": "Responder (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria Postgres (Supabase)": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_info_paquetes": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verificar_disponibilidad": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_reunion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar_confirmacion_email": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar imagen": {
+      "main": [
+        [
+          {
+            "node": "Analizar imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (Agente)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Visión": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analizar imagen",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar consulta imagen": {
+      "main": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar voz": {
+      "main": [
+        [
+          {
+            "node": "Renombrar audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renombrar audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio (Groq Whisper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio (Groq Whisper)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analizar imagen",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar imagen": {
+      "main": [
+        [
+          {
+            "node": "Registrar análisis (Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar análisis (Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Preparar consulta imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registrar_cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_web_faq": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

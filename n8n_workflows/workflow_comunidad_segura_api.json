@@ -1,0 +1,336 @@
+{
+  "name": "Comunidad Segura - API REST",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "path": "comunidad-segura/chat",
+        "requestMethod": "POST",
+        "responseMode": "responseNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "webhook_chat",
+      "name": "Webhook Chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ],
+      "webhookId": "f76c9dc0-c68c-424b-a7c7-4522b4359468"
+    },
+    {
+      "parameters": {
+        "path": "comunidad-segura/tickets",
+        "requestMethod": "POST",
+        "responseMode": "responseNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "webhook_tickets",
+      "name": "Webhook Crear Ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        200
+      ],
+      "webhookId": "ticket-create-webhook-001"
+    },
+    {
+      "parameters": {
+        "path": "comunidad-segura/reservas",
+        "requestMethod": "POST",
+        "responseMode": "responseNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "webhook_reservas",
+      "name": "Webhook Crear Reserva",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        400
+      ],
+      "webhookId": "reserva-create-webhook-001"
+    },
+    {
+      "parameters": {
+        "path": "comunidad-segura/reclamos",
+        "requestMethod": "POST",
+        "responseMode": "responseNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "webhook_reclamos",
+      "name": "Webhook Crear Reclamo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        600
+      ],
+      "webhookId": "reclamo-create-webhook-001"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tickets_mantencion (titulo, descripcion, estado, prioridad, residente_id) VALUES (@titulo, @descripcion, 'abierto', @prioridad, @residente_id) RETURNING id, titulo, descripcion, estado, prioridad, fecha_creacion, residente_id",
+        "queryParams": {
+          "titulo": "={{ $json.titulo }}",
+          "descripcion": "={{ $json.descripcion }}",
+          "prioridad": "={{ $json.prioridad || 'normal' }}",
+          "residente_id": "={{ $json.residente_id }}"
+        }
+      },
+      "id": "insert_ticket",
+      "name": "Insert Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        100,
+        200
+      ],
+      "credentials": {
+        "postgres": "postgres-comunidad-segura"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reservas (espacio, fecha_inicio, fecha_fin, estado, residente_id) VALUES (@espacio, @fecha_inicio, @fecha_fin, 'confirmada', @residente_id) RETURNING id, espacio, fecha_inicio, fecha_fin, estado, residente_id",
+        "queryParams": {
+          "espacio": "={{ $json.espacio }}",
+          "fecha_inicio": "={{ $json.fecha_inicio }}",
+          "fecha_fin": "={{ $json.fecha_fin }}",
+          "residente_id": "={{ $json.residente_id }}"
+        }
+      },
+      "id": "insert_reserva",
+      "name": "Insert Reserva",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        100,
+        400
+      ],
+      "credentials": {
+        "postgres": "postgres-comunidad-segura"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reclamos (tipo, descripcion, estado, residente_id) VALUES (@tipo, @descripcion, 'pendiente', @residente_id) RETURNING id, tipo, descripcion, estado, fecha_creacion, residente_id",
+        "queryParams": {
+          "tipo": "={{ $json.tipo }}",
+          "descripcion": "={{ $json.descripcion }}",
+          "residente_id": "={{ $json.residente_id }}"
+        }
+      },
+      "id": "insert_reclamo",
+      "name": "Insert Reclamo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        100,
+        600
+      ],
+      "credentials": {
+        "postgres": "postgres-comunidad-segura"
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "ok",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "a2",
+              "name": "data",
+              "value": "={{ $json[0] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "response_ticket_success",
+      "name": "Response Ticket Success",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        300,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "ok",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "a2",
+              "name": "data",
+              "value": "={{ $json[0] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "response_reserva_success",
+      "name": "Response Reserva Success",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        300,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "ok",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "a2",
+              "name": "data",
+              "value": "={{ $json[0] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "response_reclamo_success",
+      "name": "Response Reclamo Success",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        300,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "webhook_tickets": {
+      "main": [
+        [
+          {
+            "node": "insert_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert_ticket": {
+      "main": [
+        [
+          {
+            "node": "response_ticket_success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response_ticket_success": {
+      "main": [
+        [
+          {
+            "node": "webhook_tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "webhook_reservas": {
+      "main": [
+        [
+          {
+            "node": "insert_reserva",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert_reserva": {
+      "main": [
+        [
+          {
+            "node": "response_reserva_success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response_reserva_success": {
+      "main": [
+        [
+          {
+            "node": "webhook_reservas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "webhook_reclamos": {
+      "main": [
+        [
+          {
+            "node": "insert_reclamo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert_reclamo": {
+      "main": [
+        [
+          {
+            "node": "response_reclamo_success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response_reclamo_success": {
+      "main": [
+        [
+          {
+            "node": "webhook_reclamos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

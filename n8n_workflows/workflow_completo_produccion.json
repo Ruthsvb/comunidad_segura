@@ -1,0 +1,431 @@
+{
+  "name": "USpeak — Automatización Completa v3 (Profesores + Notion)",
+  "description": "Inscripción + Pagos + Profesores + Reportes en Notion",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n8n-form-trigger",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 1,
+      "position": [80, 120],
+      "webhookId": "webhook-form-123"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "range": "Estudiantes!A:H",
+        "values": "=[\n  \"{{ $json.nombre }}\",\n  \"{{ $json.email }}\",\n  \"{{ $json.telefono }}\",\n  \"{{ $json.nivel }}\",\n  \"\",\n  \"{{ $now.toFormat('yyyy-MM-dd') }}\",\n  false,\n  \"\"\n]"
+      },
+      "id": "append-sheets-estudiante",
+      "name": "Append Estudiante a Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [280, 120],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{ $json.nombre }}",
+              "operation": "isEmpty"
+            }
+          ]
+        },
+        "combineOperation": "and"
+      },
+      "id": "validate-datos",
+      "name": "Validar Datos (existe nombre)",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value": "{{ $json.nivel }}"
+      },
+      "id": "switch-nivel-estudiante",
+      "name": "Switch: ¿Cuál es el nivel?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [680, 120],
+      "branches": [
+        {
+          "expression": "{{ $json === 'Básico' }}",
+          "outputIndex": 0
+        },
+        {
+          "expression": "{{ $json === 'Intermedio' }}",
+          "outputIndex": 1
+        },
+        {
+          "expression": "{{ $json === 'Avanzado' }}",
+          "outputIndex": 2
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "range": "Maestro Profesores!A:E",
+        "options": {
+          "firstDataRow": 2
+        }
+      },
+      "id": "lookup-profesor-basico",
+      "name": "Lookup: Profesor Básico",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [880, 50],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "range": "Maestro Profesores!A:E",
+        "options": {
+          "firstDataRow": 2
+        }
+      },
+      "id": "lookup-profesor-intermedio",
+      "name": "Lookup: Profesor Intermedio",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [880, 120],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "range": "Maestro Profesores!A:E",
+        "options": {
+          "firstDataRow": 2
+        }
+      },
+      "id": "lookup-profesor-avanzado",
+      "name": "Lookup: Profesor Avanzado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [880, 190],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oauth2",
+        "title": "{{ $json.nombre }}",
+        "databaseId": "notion-db-estudiantes",
+        "properties": {
+          "Email": {
+            "email": "{{ $json.email }}"
+          },
+          "Telefono": {
+            "phone_number": "{{ $json.telefono }}"
+          },
+          "Nivel": {
+            "select": {
+              "name": "{{ $json.nivel }}"
+            }
+          },
+          "Profesor": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "{{ $node['Lookup Profesor'].json[0].Profesor }}"
+                }
+              }
+            ]
+          },
+          "Email Profesor": {
+            "email": "{{ $node['Lookup Profesor'].json[0]['Email Profesor'] }}"
+          },
+          "Horario": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "{{ $json.nivel === 'Básico' ? 'L/M/V 09:00-10:30' : $json.nivel === 'Intermedio' ? 'M/J/S 14:00-15:30' : 'L/M/V 18:00-19:30' }}"
+                }
+              }
+            ]
+          },
+          "Sala": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "{{ $json.nivel === 'Básico' ? 'Sala A' : $json.nivel === 'Intermedio' ? 'Sala B' : 'Sala C' }}"
+                }
+              }
+            ]
+          },
+          "Link Zoom": {
+            "url": "{{ $json.nivel === 'Básico' ? 'zoom.us/j/basic-2026' : $json.nivel === 'Intermedio' ? 'zoom.us/j/intermediate-2026' : 'zoom.us/j/advanced-2026' }}"
+          },
+          "Fecha Inscripcion": {
+            "date": {
+              "start": "{{ $now.toFormat('yyyy-MM-dd') }}"
+            }
+          },
+          "Estado": {
+            "select": {
+              "name": "Inscrito"
+            }
+          }
+        }
+      },
+      "id": "notion-crear-estudiante",
+      "name": "Notion: Crear Registro Estudiante",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1080, 120],
+      "credentials": {
+        "notionOAuth2Api": "notion-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@uspeak.cl",
+        "toEmail": "{{ $json.email }}",
+        "subject": "¡Bienvenido a USpeak! — Tu Inscripción Confirmada",
+        "htmlBody": "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>\n  <div style='background-color: #2E6DA4; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0;'>\n    <h1>¡Bienvenido a USpeak Academia! 🎓</h1>\n  </div>\n  \n  <div style='background-color: #f9f9f9; padding: 30px;'>\n    <p>Hola <strong>{{ $json.nombre }}</strong>,</p>\n    \n    <p>Tu inscripción ha sido <strong style='color: #27ae60;'>confirmada exitosamente</strong>.</p>\n    \n    <div style='background-color: #eaf2fb; border-left: 4px solid #2E6DA4; padding: 15px; margin: 20px 0;'>\n      <h3 style='color: #2E6DA4; margin-top: 0;'>📚 Detalles de tu Curso</h3>\n      <table style='width: 100%;'>\n        <tr>\n          <td style='padding: 8px;'><strong>Nivel:</strong></td>\n          <td style='padding: 8px;'>{{ $json.nivel }}</td>\n        </tr>\n        <tr style='background-color: #fff;'>\n          <td style='padding: 8px;'><strong>Profesor:</strong></td>\n          <td style='padding: 8px;' style='color: #2E6DA4;'><strong>{{ $node['Lookup Profesor'].json[0].Profesor }}</strong></td>\n        </tr>\n        <tr>\n          <td style='padding: 8px;'><strong>Email Profesor:</strong></td>\n          <td style='padding: 8px;'>{{ $node['Lookup Profesor'].json[0]['Email Profesor'] }}</td>\n        </tr>\n        <tr style='background-color: #fff;'>\n          <td style='padding: 8px;'><strong>Horario:</strong></td>\n          <td style='padding: 8px;'>{{ $json.nivel === 'Básico' ? 'Lunes, Miércoles, Viernes | 09:00-10:30' : $json.nivel === 'Intermedio' ? 'Martes, Jueves, Sábado | 14:00-15:30' : 'Lunes, Miércoles, Viernes | 18:00-19:30' }}</td>\n        </tr>\n        <tr>\n          <td style='padding: 8px;'><strong>Sala:</strong></td>\n          <td style='padding: 8px;'>{{ $json.nivel === 'Básico' ? 'Sala A' : $json.nivel === 'Intermedio' ? 'Sala B' : 'Sala C' }}</td>\n        </tr>\n      </table>\n    </div>\n    \n    <div style='background-color: #fff8e1; border-left: 4px solid #f0a500; padding: 15px; margin: 20px 0;'>\n      <h3 style='color: #d68910; margin-top: 0;'>💰 Información de Pago</h3>\n      <p><strong>Cuenta bancaria:</strong> Banco Estado • Cuenta Corriente 12345678</p>\n      <p><strong>Monto:</strong> $150.000 (pago anual)</p>\n      <p><strong>Enviar comprobante a:</strong> <a href='mailto:pagos@uspeak.cl' style='color: #2E6DA4;'>pagos@uspeak.cl</a></p>\n      <p style='font-size: 12px; color: #666;'><em>⏰ Por favor envía el comprobante dentro de 5 días para confirmar tu inscripción.</em></p>\n    </div>\n    \n    <div style='background-color: #f0fff4; border-left: 4px solid #27ae60; padding: 15px; margin: 20px 0;'>\n      <h3 style='color: #27ae60; margin-top: 0;'>🔗 Acceso a Clases</h3>\n      <p><strong>Link Zoom:</strong> <a href='{{ $json.nivel === \"Básico\" ? \"zoom.us/j/basic-2026\" : $json.nivel === \"Intermedio\" ? \"zoom.us/j/intermediate-2026\" : \"zoom.us/j/advanced-2026\" }}' style='color: #2E6DA4; text-decoration: none;'>\n      {{ $json.nivel === 'Básico' ? 'zoom.us/j/basic-2026' : $json.nivel === 'Intermedio' ? 'zoom.us/j/intermediate-2026' : 'zoom.us/j/advanced-2026' }}\n      </a></p>\n      <p style='font-size: 12px; color: #666;'>Usa este link para acceder a todas tus clases.</p>\n    </div>\n    \n    <p style='margin-top: 30px; text-align: center;'>\n      <a href='mailto:contacto@uspeak.cl' style='display: inline-block; background-color: #2E6DA4; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;'>¿Dudas? Contactanos</a>\n    </p>\n    \n    <p style='text-align: center; margin-top: 20px; color: #666; font-size: 12px;'>\n      © 2026 USpeak Academia. Todos los derechos reservados.\n    </p>\n  </div>\n</div>"
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email (con Profesor)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1280, 120]
+    },
+    {
+      "parameters": {
+        "triggerOn": "cron",
+        "cronExpression": "0 9 28 * *"
+      },
+      "id": "scheduler-reporte-dia28",
+      "name": "Scheduler: Día 28 del mes (09:00)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [80, 400]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "range": "Estudiantes!A:H",
+        "options": {
+          "firstDataRow": 2
+        }
+      },
+      "id": "read-all-estudiantes",
+      "name": "Read: Todos los Estudiantes",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [280, 400],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{ $json.pagado }}",
+              "operation": "equals",
+              "value2": "false"
+            }
+          ]
+        }
+      },
+      "id": "filter-morosos",
+      "name": "Filter: Solo Morosos (sin pagar)",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [480, 400]
+    },
+    {
+      "parameters": {
+        "authentication": "oauth2",
+        "title": "Reporte Morosos — {{ $now.toFormat('dd-MM-yyyy') }}",
+        "databaseId": "notion-db-reportes",
+        "properties": {
+          "Fecha Generacion": {
+            "date": {
+              "start": "{{ $now.toFormat('yyyy-MM-dd') }}"
+            }
+          },
+          "Total Morosos": {
+            "number": "{{ $json.length }}"
+          },
+          "Listado": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "{{ $json.map(item => `${item.nombre} (${item.nivel}) - ${item.email}`).join('; ') }}"
+                }
+              }
+            ]
+          },
+          "Estado": {
+            "select": {
+              "name": "Pendiente Revisión"
+            }
+          }
+        }
+      },
+      "id": "notion-crear-reporte",
+      "name": "Notion: Crear Reporte Morosos",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [680, 400],
+      "credentials": {
+        "notionOAuth2Api": "notion-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@uspeak.cl",
+        "toEmail": "contacto@uspeak.cl",
+        "subject": "📊 Reporte Automático USpeak — Morosos {{ $now.toFormat('dd-MM-yyyy') }}",
+        "htmlBody": "<div style='font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;'>\n  <div style='background-color: #2E6DA4; color: white; padding: 20px; text-align: center;'>\n    <h2>📊 Reporte de Estudiantes Morosos</h2>\n    <p>Generado automáticamente: {{ $now.toFormat('dd-MM-yyyy HH:mm') }}</p>\n  </div>\n  \n  <div style='padding: 20px; background-color: #f9f9f9;'>\n    <p style='font-size: 16px;'><strong>Total sin pagar: {{ $json.length }} estudiante(s)</strong></p>\n    \n    <table style='width: 100%; border-collapse: collapse; margin-top: 20px;'>\n      <thead>\n        <tr style='background-color: #2E6DA4; color: white;'>\n          <th style='border: 1px solid #ddd; padding: 10px; text-align: left;'>Nombre</th>\n          <th style='border: 1px solid #ddd; padding: 10px; text-align: left;'>Email</th>\n          <th style='border: 1px solid #ddd; padding: 10px; text-align: left;'>Nivel</th>\n          <th style='border: 1px solid #ddd; padding: 10px; text-align: left;'>Teléfono</th>\n        </tr>\n      </thead>\n      <tbody>\n        {{ $json.map((item, idx) => `\n          <tr style='background-color: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};'>\n            <td style='border: 1px solid #ddd; padding: 10px;'>${item.nombre}</td>\n            <td style='border: 1px solid #ddd; padding: 10px;'>${item.email}</td>\n            <td style='border: 1px solid #ddd; padding: 10px;'><span style='background-color: #eaf2fb; padding: 4px 8px; border-radius: 3px;'>${item.nivel}</span></td>\n            <td style='border: 1px solid #ddd; padding: 10px;'>${item.telefono}</td>\n          </tr>\n        `).join('') }}\n      </tbody>\n    </table>\n    \n    <div style='margin-top: 20px; padding: 15px; background-color: #fff8e1; border-left: 4px solid #f0a500;'>\n      <p><strong>⚠️ Acciones sugeridas:</strong></p>\n      <ul>\n        <li>Enviar recordatorio de pago a morosos</li>\n        <li>Verificar que los datos de contacto sean correctos</li>\n        <li>Ver detalle completo en Notion: <a href='https://notion.so' style='color: #2E6DA4;'>Reportes</a></li>\n      </ul>\n    </div>\n    \n    <p style='margin-top: 20px; text-align: center; color: #666; font-size: 12px;'>\n      Este es un reporte automático generado por n8n. No responder a este email.\n    </p>\n  </div>\n</div>"
+      },
+      "id": "send-reporte-email",
+      "name": "Send: Email Reporte a Admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "triggerOn": "googleSheets",
+        "sheetName": "Estudiantes",
+        "range": "G:G",
+        "spreadsheetId": "1xW-Vumw3q0Tzljgc-wm2OS9bn-QwO0WpL3-imFxThx0",
+        "event": "onUpdate"
+      },
+      "id": "trigger-pago-confirmado",
+      "name": "Trigger: Cuando marca PAGADO en Sheets",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [80, 700],
+      "credentials": {
+        "googleApi": "google-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{ $json.pagado }}",
+              "operation": "equals",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "filter-pagado-true",
+      "name": "Filter: Solo si pagado = true",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [280, 700]
+    },
+    {
+      "parameters": {
+        "authentication": "oauth2",
+        "databaseId": "notion-db-estudiantes",
+        "filter": {
+          "property": \"Email\",\n          \"rich_text\": {\n            \"equals\": \"{{ $json.email }}\"\n          }\n        },\n        "update": true,\n        "properties": {\n          \"Estado\": {\n            \"select\": {\n              \"name\": \"Pagado\"\n            }\n          },\n          \"Fecha Pago\": {\n            \"date\": {\n              \"start\": \"{{ $now.toFormat('yyyy-MM-dd') }}\"\n            }\n          }\n        }\n      },\n      "id": "notion-actualizar-estado-pagado",\n      "name": "Notion: Actualizar Estado a Pagado",\n      "type": "n8n-nodes-base.notion",\n      "typeVersion": 2,
+      "position": [480, 700],
+      "credentials": {
+        "notionOAuth2Api": "notion-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@uspeak.cl",
+        "toEmail": "{{ $json.email }}",
+        "subject": "✅ Tu Pago ha sido Confirmado",
+        "htmlBody": "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n  <div style='background-color: #27ae60; color: white; padding: 30px; text-align: center; border-radius: 5px 5px 0 0;'>\n    <h1>✅ ¡Pago Confirmado!</h1>\n  </div>\n  \n  <div style='background-color: #f0fff4; padding: 30px; border-left: 4px solid #27ae60;'>\n    <p>Hola <strong>{{ $json.nombre }}</strong>,</p>\n    \n    <p>Tu pago ha sido <strong style='color: #27ae60;'>confirmado correctamente</strong>.</p>\n    \n    <div style='background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px;'>\n      <p><strong>📚 Tu curso está activado:</strong></p>\n      <ul>\n        <li>Nivel: {{ $json.nivel }}</li>\n        <li>Inicio: Inmediato</li>\n        <li>Duracion: 1 año</li>\n      </ul>\n    </div>\n    \n    <p style='margin-top: 20px;'>Nos vemos en clases! 🚀</p>\n    \n    <p style='margin-top: 30px; text-align: center;'>\n      <a href='mailto:contacto@uspeak.cl' style='display: inline-block; background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;'>Contactar Soporte</a>\n    </p>\n  </div>\n</div>"
+      },
+      "id": "send-pago-confirmado-email",
+      "name": "Send: Email Confirmación Pago",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [680, 700]
+    }
+  ],
+  "connections": {
+    "n8n-form-trigger": {
+      "main": [[{ "node": "append-sheets-estudiante", "branch": 0 }]]
+    },
+    "append-sheets-estudiante": {
+      "main": [[{ "node": "validate-datos", "branch": 0 }]]
+    },
+    "validate-datos": {
+      "main": [[{ "node": "switch-nivel-estudiante", "branch": 0 }]]
+    },
+    "switch-nivel-estudiante": {
+      "main": [
+        [{ "node": "lookup-profesor-basico", "branch": 0 }],
+        [{ "node": "lookup-profesor-intermedio", "branch": 0 }],
+        [{ "node": "lookup-profesor-avanzado", "branch": 0 }]
+      ]
+    },
+    "lookup-profesor-basico": {
+      "main": [[{ "node": "notion-crear-estudiante", "branch": 0 }]]
+    },
+    "lookup-profesor-intermedio": {
+      "main": [[{ "node": "notion-crear-estudiante", "branch": 0 }]]
+    },
+    "lookup-profesor-avanzado": {
+      "main": [[{ "node": "notion-crear-estudiante", "branch": 0 }]]
+    },
+    "notion-crear-estudiante": {
+      "main": [[{ "node": "send-welcome-email", "branch": 0 }]]
+    },
+    "scheduler-reporte-dia28": {
+      "main": [[{ "node": "read-all-estudiantes", "branch": 0 }]]
+    },
+    "read-all-estudiantes": {
+      "main": [[{ "node": "filter-morosos", "branch": 0 }]]
+    },
+    "filter-morosos": {
+      "main": [[{ "node": "notion-crear-reporte", "branch": 0 }]]
+    },
+    "notion-crear-reporte": {
+      "main": [[{ "node": "send-reporte-email", "branch": 0 }]]
+    },
+    "trigger-pago-confirmado": {
+      "main": [[{ "node": "filter-pagado-true", "branch": 0 }]]
+    },
+    "filter-pagado-true": {
+      "main": [[{ "node": "notion-actualizar-estado-pagado", "branch": 0 }]]
+    },
+    "notion-actualizar-estado-pagado": {
+      "main": [[{ "node": "send-pago-confirmado-email", "branch": 0 }]]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 3600
+  }
+}
