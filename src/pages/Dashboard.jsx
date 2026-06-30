@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Ticket, CalendarDays, AlertTriangle, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { getDashboard } from '../api/n8n';
+import { getDashboard } from '../api/backend';
 
 export default function Dashboard({ user }) {
   const [data, setData] = useState(null);
@@ -66,10 +66,10 @@ export default function Dashboard({ user }) {
     <div className="space-y-6 animate-fade-in">
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-primary">
-          {user.role === 'admin' ? 'Dashboard Administrativo' : `Bienvenido(a), ${user.user_name}`}
+          {user.rol === 'admin' ? 'Dashboard Administrativo' : `Bienvenido(a), ${user.nombre}`}
         </h1>
         <p className="text-gray-500">
-          {user.role === 'admin' ? 'Resumen general de la comunidad' : `Panel de residente - Unidad ${user.unidad}`}
+          {user.rol === 'admin' ? 'Resumen general de la comunidad' : `Panel de residente - Unidad ${user.unidad}`}
         </p>
       </header>
 
@@ -86,7 +86,7 @@ export default function Dashboard({ user }) {
 
 
 
-      {user.role === 'admin' ? (
+      {user.rol === 'admin' ? (
         /* VISTA ADMINISTRADOR: Métricas Globales */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
           {/* Residentes */}
