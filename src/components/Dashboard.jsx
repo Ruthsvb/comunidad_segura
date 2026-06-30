@@ -41,11 +41,20 @@ export default function Dashboard() {
   // Determinar si hay alertas activas
   const hasUrgentTickets = metrics.tickets_urgentes > 0
   const hasMultaActiva = metrics.multa_gastos_comunes_activa
-  const currentDay = new Date().getDate()
-  const isMultaPeriod = currentDay > 10
 
   return (
     <div className="space-y-6">
+      {/* Multa Alert */}
+      {hasMultaActiva && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex gap-3">
+          <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <h3 className="font-bold text-yellow-800">⚠️ Período de Multa Activo</h3>
+            <p className="text-sm text-yellow-700">Se aplica recargo de 1.5% por pago fuera de plazo.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -234,24 +243,24 @@ export default function Dashboard() {
         </Card>
 
         {/* Multa gastos comunes */}
-        <Card alert={isMultaPeriod} alertColor="amber">
+        <Card alert={hasMultaActiva} alertColor="amber">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-lg ${isMultaPeriod ? 'bg-warning/10' : 'bg-success/10'}`}>
-                <DollarSign className={isMultaPeriod ? 'text-warning' : 'text-success'} size={24} />
+              <div className={`p-3 rounded-lg ${hasMultaActiva ? 'bg-warning/10' : 'bg-success/10'}`}>
+                <DollarSign className={hasMultaActiva ? 'text-warning' : 'text-success'} size={24} />
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Gastos Comunes</h3>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {isMultaPeriod ? 'Con multa' : 'Al día'}
+                  {hasMultaActiva ? 'Con multa' : 'Al día'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Día {currentDay} del mes
+                  Status de pagos
                 </p>
               </div>
             </div>
-            <Badge variant={isMultaPeriod ? 'warning' : 'success'}>
-              {isMultaPeriod ? 'Multa vigente' : 'OK'}
+            <Badge variant={hasMultaActiva ? 'warning' : 'success'}>
+              {hasMultaActiva ? 'Multa vigente' : 'OK'}
             </Badge>
           </div>
         </Card>

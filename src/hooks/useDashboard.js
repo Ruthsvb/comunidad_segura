@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getDashboard } from '../api/n8n'
+import { getDashboard } from '../api/backend'
 
 /**
  * Hook personalizado para obtener datos del dashboard con polling automático
