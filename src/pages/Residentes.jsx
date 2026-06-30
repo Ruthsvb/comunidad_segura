@@ -90,7 +90,7 @@ export default function Residentes({ user }) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-gray-100 text-slate-500 text-sm uppercase tracking-wider">
-                  <th className="py-4 px-6 font-semibold">Unidad</th>
+                  <th className="py-4 px-6 font-semibold whitespace-nowrap">Unidad</th>
                   <th className="py-4 px-6 font-semibold">Residente</th>
                   <th className="py-4 px-6 font-semibold">Contacto</th>
                   <th className="py-4 px-6 font-semibold text-center">Estado</th>
@@ -100,13 +100,14 @@ export default function Residentes({ user }) {
                 {filteredResidentes.map((residente) => {
                   const initialName = (residente.nombre || 'U').charAt(0);
                   const initialLastName = (residente.apellido || 'N').charAt(0);
-                  const unidadShort = (residente.unidad || '?').split('-')[0];
+                  const unidadRaw = (residente.unidad || '?').split('-')[0];
+                  const unidadShort = unidadRaw.length > 4 ? unidadRaw.slice(0, 3).toUpperCase() : unidadRaw;
 
                   return (
                     <tr key={residente.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center font-bold">
+                          <div className="w-10 h-10 shrink-0 rounded-full bg-blue-50 text-secondary flex items-center justify-center font-bold text-xs">
                             {unidadShort}
                           </div>
                           <div>
