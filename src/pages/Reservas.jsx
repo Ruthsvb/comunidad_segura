@@ -1,158 +1,237 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, MapPin, Clock, Users, X, RefreshCw, AlertTriangle } from 'lucide-react';
-import ReservaForm from '../components/ReservaForm';
-import { getReservas } from '../api/n8n';
+import { Plus, RefreshCw, X } from 'lucide-react';
+import { getReservas, createReserva, updateReservaEstado, deleteReserva } from '../api/backend';
+import { useAuth } from '../hooks/useAuth';
 
-const MOCK_ESPACIOS = [
-  { id: 1, nombre: 'Quincho', estado: 'disponible', icon: '🍖', capacidad: 20 },
-  { id: 2, nombre: 'Sala de Eventos', estado: 'ocupada hoy', icon: '🎭', capacidad: 50 },
-  { id: 3, nombre: 'Piscina', estado: 'disponible', icon: '🏊', capacidad: 15 },
-  { id: 4, nombre: 'Cancha Multiuso', estado: 'disponible', icon: '🏃', capacidad: 10 },
-];
+const ESPACIOS = ['quincho', 'sala_eventos', 'piscina', 'multicancha'];
 
-export default function Reservas({ user }) {
-  const [showForm, setShowForm] = useState(false);
+export default function Reservas() {
+  const { user, isAdmin } = useAuth();
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [selectedReserva, setSelectedReserva] = useState(null);
 
-  const fetchReservas = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getReservas(user.unidad);
-      setReservas(data);
-    } catch (err) {
-      setError(err.message || 'No se pudieron cargar las reservas.');
-      setReservas([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [form, setForm] = useState({
+    espacio_comun: 'quincho',
+    fecha: '',
+    hora_inicio: '',
+    hora_fin: ''
+  });
 
   useEffect(() => {
     fetchReservas();
   }, [user]);
 
-  const handleReservaCreated = (newReserva) => {
-    // Al crear exitosamente, volvemos a buscar a la base de datos para asegurar consistencia
-    fetchReservas();
-    setShowForm(false);
+  const fetchReservas = async () => {
+    try {
+      setLoading(true);
+      const filters = {};
+      if (!isAdmin) filters.unidad = user.unidad;
+      const res = await getReservas(filters);
+      setReservas(res.data || []);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const fechaReserva = new Date(form.fecha);
+      const ahora = new Date();
+      const diff = (fechaReserva - ahora) / (1000 * 60 * 60);
+
+      if (diff < 48) {
+        setError('Mínimo 48 horas de anticipación');
+        return;
+      }
+
+      await createReserva({ ...form, residente_id: user.id });
+      setForm({ espacio_comun: 'quincho', fecha: '', hora_inicio: '', hora_fin: '' });
+      setShowForm(false);
+      fetchReservas();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleCancelar = async (id) => {
+    if (!confirm('¿Cancelar esta reserva?')) return;
+    try {
+      await updateReservaEstado(id, 'cancelada');
+      fetchReservas();
+      setSelectedReserva(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const getEstadoColor = (estado) => {
+    const colors = {
+      confirmada: 'bg-green-100 text-green-800',
+      pendiente: 'bg-yellow-100 text-yellow-800',
+      cancelada: 'bg-red-100 text-red-800'
+    };
+    return colors[estado] || 'bg-gray-100';
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-primary">Mis Reservas</h1>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          <Plus size={20} />
+          Nueva Reserva
+        </button>
+      </div>
+
+      {/* Modal Formulario */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6 relative">
             <button
               onClick={() => setShowForm(false)}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg z-10"
+              className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded"
             >
               <X size={20} />
             </button>
-            <div className="p-6">
-              <ReservaForm user={user} onSuccess={handleReservaCreated} />
+            <h2 className="text-lg font-bold mb-4">Nueva Reserva</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Espacio</label>
+                <select
+                  value={form.espacio_comun}
+                  onChange={(e) => setForm({ ...form, espacio_comun: e.target.value })}
+                  className="w-full border border-gray-200 rounded px-3 py-2"
+                >
+                  {ESPACIOS.map(e => (
+                    <option key={e} value={e}>{e}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Fecha</label>
+                <input
+                  type="date"
+                  required
+                  value={form.fecha}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                  className="w-full border border-gray-200 rounded px-3 py-2"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hora Inicio</label>
+                  <input
+                    type="time"
+                    required
+                    value={form.hora_inicio}
+                    onChange={(e) => setForm({ ...form, hora_inicio: e.target.value })}
+                    className="w-full border border-gray-200 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hora Fin</label>
+                  <input
+                    type="time"
+                    required
+                    value={form.hora_fin}
+                    onChange={(e) => setForm({ ...form, hora_fin: e.target.value })}
+                    className="w-full border border-gray-200 rounded px-3 py-2"
+                  />
+                </div>
+              </div>
+              {error && <div className="text-red-600 text-sm">{error}</div>}
+              <button
+                type="submit"
+                className="w-full bg-accent hover:bg-accent/90 text-white py-2 rounded font-medium"
+              >
+                Reservar
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalle */}
+      {selectedReserva && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setSelectedReserva(null)}
+              className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-lg font-bold mb-4">{selectedReserva.espacio_comun}</h2>
+            <div className="space-y-3 text-sm">
+              <div><span className="font-medium">Fecha:</span> {new Date(selectedReserva.fecha).toLocaleDateString()}</div>
+              <div><span className="font-medium">Hora:</span> {selectedReserva.hora_inicio} - {selectedReserva.hora_fin}</div>
+              <div>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoColor(selectedReserva.estado)}`}>
+                  {selectedReserva.estado}
+                </span>
+              </div>
+
+              {(selectedReserva.estado === 'confirmada' || selectedReserva.estado === 'pendiente') && !isAdmin && (
+                <button
+                  onClick={() => { handleCancelar(selectedReserva.id); }}
+                  className="w-full mt-4 bg-red-100 hover:bg-red-200 text-red-800 py-2 rounded font-medium"
+                >
+                  Cancelar Reserva
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-primary">Reservas de Espacios</h1>
-        <p className="text-gray-500">Consulta disponibilidad y reserva áreas comunes</p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {MOCK_ESPACIOS.map((espacio) => (
-          <div key={espacio.id} className="bg-card p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-3">{espacio.icon}</div>
-            <h3 className="font-bold text-primary mb-1">{espacio.nombre}</h3>
-            
-            <span className={`text-xs px-2 py-1 rounded-full font-semibold uppercase mb-4 ${
-              espacio.estado === 'disponible' ? 'bg-successLight text-success' : 'bg-red-50 text-danger'
-            }`}>
-              {espacio.estado}
-            </span>
-
-            <button
-              onClick={() => setShowForm(true)}
-              disabled={espacio.estado !== 'disponible'}
-              className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-              espacio.estado === 'disponible'
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-not-allowed'
-            }`}>
-              {espacio.estado === 'disponible' ? 'Reservar' : 'Ver agenda'}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-secondary" />
-          <h2 className="font-bold text-gray-700">Mis Reservas</h2>
+      {/* Tabla */}
+      {loading ? (
+        <div className="text-center py-8"><RefreshCw className="animate-spin mx-auto" /></div>
+      ) : reservas.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">No tienes reservas registradas</div>
+      ) : (
+        <div className="overflow-x-auto bg-white rounded-lg shadow-sm">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium">Espacio</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Fecha</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Hora</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reservas.map(reserva => (
+                <tr
+                  key={reserva.id}
+                  onClick={() => setSelectedReserva(reserva)}
+                  className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <td className="px-4 py-3 text-sm font-medium">{reserva.espacio_comun}</td>
+                  <td className="px-4 py-3 text-sm">{new Date(reserva.fecha).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-sm">{reserva.hora_inicio} - {reserva.hora_fin}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoColor(reserva.estado)}`}>
+                      {reserva.estado}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="p-6">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-              <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4" />
-              <p>Cargando reservas desde la base de datos...</p>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 text-danger p-6 rounded-xl flex items-start gap-4">
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <div>
-                <h3 className="font-bold">Error de conexión</h3>
-                <p className="text-sm mt-1">{error}</p>
-                <p className="text-sm mt-2 font-mono bg-red-100/50 p-2 rounded">
-                  La API en n8n devolvió un error (Posiblemente el Webhook de reservas no está activo o configurado correctamente).
-                </p>
-              </div>
-            </div>
-          ) : reservas.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">
-              No tienes reservas registradas actualmente.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {reservas.map((reserva) => {
-                const fechaInicio = new Date(reserva.fecha_inicio);
-                const fechaFin = reserva.fecha_fin ? new Date(reserva.fecha_fin) : null;
-                const fechaTexto = isNaN(fechaInicio) ? reserva.fecha || 'Fecha inválida' : fechaInicio.toLocaleDateString('es-CL');
-                const horaTexto = isNaN(fechaInicio) 
-                  ? reserva.hora || '' 
-                  : `${fechaInicio.toLocaleTimeString('es-CL', {hour: '2-digit', minute:'2-digit'})} - ${fechaFin ? fechaFin.toLocaleTimeString('es-CL', {hour: '2-digit', minute:'2-digit'}) : '...'}`;
-
-                return (
-                  <div key={reserva.id || Math.random()} className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-xl hover:bg-gray-50 transition-colors">
-                    <div className="mb-4 md:mb-0">
-                      <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                        {reserva.espacio || reserva.espacio_comun || 'Espacio'}
-                      </h4>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
-                        <span className="flex items-center gap-1"><CalendarIcon size={14} /> {fechaTexto}</span>
-                        <span className="flex items-center gap-1"><Clock size={14} /> {horaTexto}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                        (reserva.estado || '').toLowerCase() === 'confirmada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {reserva.estado || 'Pendiente'}
-                      </span>
-                      <button className="text-danger hover:bg-red-50 p-2 rounded-lg transition-colors">
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
