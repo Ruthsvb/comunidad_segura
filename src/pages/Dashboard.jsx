@@ -54,12 +54,12 @@ export default function Dashboard({ user }) {
   }
   
   // Mapear los datos de n8n al formato del frontend
-  const residentesCount = parseInt(payload.residentes_totales || payload.residentes?.total || 0, 10);
+  const residentesCount = parseInt(payload.total_residentes_activos || payload.residentes_totales || payload.residentes?.total || 0, 10);
   const ticketsAbiertos = parseInt(payload.tickets_abiertos || payload.tickets?.abiertos || 0, 10);
   const ticketsUrgentes = parseInt(payload.tickets_urgentes || payload.tickets?.urgentes || 0, 10);
   const reservasCount = parseInt(payload.reservas_proximas || payload.reservas?.proximas || 0, 10);
-  const reclamosCount = parseInt(payload.reclamos_abiertos || payload.reclamos?.abiertos || 0, 10);
-  const multa_activa = payload.multaGastosActiva ?? payload.multa_activa ?? false;
+  const reclamosCount = parseInt(payload.reclamos_pendientes || payload.reclamos_abiertos || payload.reclamos?.abiertos || 0, 10);
+  const multa_activa = payload.multa_gastos_comunes_activa ?? payload.multaGastosActiva ?? payload.multa_activa ?? false;
   const turno = typeof payload.turnoConserje === 'string' ? { periodo: payload.turnoConserje, update: 'Reciente' } : payload.turno || { periodo: 'mañana', update: '12:00' };
 
   return (
