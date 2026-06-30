@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, RefreshCw, X } from 'lucide-react';
 import { getGastos, updateGastoEstadoPago, getDashboard } from '../api/backend';
-import { useAuth } from '../hooks/useAuth';
-
-export default function Gastos() {
-  const { user, isAdmin } = useAuth();
+export default function Gastos({ user }) {
+  const isAdmin = user?.rol === 'admin';
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,6 +10,7 @@ export default function Gastos() {
   const [multa, setMulta] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     fetchGastos();
     fetchDashboard();
   }, [user]);
@@ -20,7 +19,7 @@ export default function Gastos() {
     try {
       setLoading(true);
       const filters = {};
-      if (!isAdmin) filters.unidad = user.unidad;
+      if (!isAdmin && user?.unidad) filters.unidad = user.unidad;
       const res = await getGastos(filters);
       setGastos(res.data || []);
       setError(null);
@@ -63,7 +62,7 @@ export default function Gastos() {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-primary">Mis Gastos Comunes</h1>
-        <p className="text-gray-500">Historial y pagos de la unidad {user.unidad}</p>
+        <p className="text-gray-500">Historial y pagos de la unidad {user?.unidad}</p>
       </div>
 
       {multa && (
