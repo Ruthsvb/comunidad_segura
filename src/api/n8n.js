@@ -1,5 +1,5 @@
 // Conexión directa a los webhooks de n8n Cloud
-const BASE = 'https://ruthsaraiveb.app.n8n.cloud/webhook';
+const BASE = 'https://ruthvelasquezbe.app.n8n.cloud/webhook';
 
 /**
  * Envía un mensaje al chatbot de Comunidad Segura
@@ -10,10 +10,10 @@ const BASE = 'https://ruthsaraiveb.app.n8n.cloud/webhook';
  * @returns {Promise<Object>} Respuesta del chatbot
  */
 export async function sendChatMessage({ message, session_id, user_name, unidad, email, residente_id }) {
-  const res = await fetch(`${BASE}/comunidad-segura/chat`, {
+  const res = await fetch(`${BASE}/comunidad-segura-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, session_id, user_name, unidad, email, residente_id })
+    body: JSON.stringify({ message, sessionId: session_id, user_name, unidad, email, residente_id })
   });
   
   try {
