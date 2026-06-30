@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { MessageSquare, X, Send, Bot, User } from 'lucide-react'
 import useChat from '../hooks/useChat'
+import { useAuth } from '../hooks/useAuth'
 
 /**
  * Componente ChatWidget con burbuja flotante y panel de chat
@@ -10,8 +11,9 @@ export default function ChatWidget() {
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
-  
-  const { messages, loading, userName, setUserName, sendMessage } = useChat()
+  const { user } = useAuth()
+
+  const { messages, loading, userName, setUserName, sendMessage } = useChat({ user })
 
   // Auto-scroll al final cuando hay nuevos mensajes
   useEffect(() => {

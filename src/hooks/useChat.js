@@ -5,10 +5,10 @@ import { sendChatMessage } from '../api/n8n'
  * Hook personalizado para gestionar el chat con el bot
  * @returns {Object} Estado y funciones del chat
  */
-export default function useChat() {
+export default function useChat({ user } = {}) {
   // Generar session_id una sola vez
   const session_id = useRef(crypto.randomUUID())
-  
+
   const [messages, setMessages] = useState([
     {
       role: 'bot',
@@ -48,7 +48,10 @@ export default function useChat() {
         sendChatMessage({
           message: text.trim(),
           session_id: session_id.current,
-          user_name: userName
+          user_name: user?.nombre || userName,
+          unidad: user?.unidad || '',
+          rol: user?.rol || 'residente',
+          residente_id: user?.id || null
         }),
         timeoutPromise
       ])
