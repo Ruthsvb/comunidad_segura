@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { createReclamo } from '../api/n8n';
+import { createReclamo } from '../api/backend';
 import Card from './ui/Card';
 
 const TIPOS_RECLAMO = [

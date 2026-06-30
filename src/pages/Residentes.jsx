@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Search, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
-import { getResidentes } from '../api/n8n';
+import { getResidentes } from '../api/backend';
 
 export default function Residentes({ user }) {
   const [residentes, setResidentes] = useState([]);
@@ -9,7 +9,7 @@ export default function Residentes({ user }) {
 
   useEffect(() => {
     // Solo permitir acceso a admin
-    if (user.role !== 'admin') {
+    if (user.rol !== 'admin') {
       setLoading(false);
       return;
     }
@@ -41,7 +41,7 @@ export default function Residentes({ user }) {
     fetchResidentes();
   }, [user]);
 
-  if (user.role !== 'admin') {
+  if (user.rol !== 'admin') {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-500">
         <XCircle className="w-12 h-12 text-danger mb-4" />

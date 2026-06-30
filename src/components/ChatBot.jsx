@@ -5,7 +5,7 @@ import { sendChatMessage } from '../api/n8n';
 export default function ChatBot({ user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: '1', text: `👋 Hola ${user.user_name}! Soy Sammy.\nPuedo ayudarte con tus gastos, tickets y reservas.`, sender: 'bot' }
+    { id: '1', text: `👋 Hola ${user.nombre}! Soy Sammy.\nPuedo ayudarte con tus gastos, tickets y reservas.`, sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,10 +40,10 @@ export default function ChatBot({ user }) {
       const response = await sendChatMessage({
         message: userMessage,
         session_id: user.session_id,
-        user_name: user.user_name,
+        user_name: user.nombre,
         unidad: user.unidad,
         email: user.email,
-        residente_id: user.residente_id
+        residente_id: user.id
       }).catch(err => {
         if (err.name === 'AbortError') throw new Error('timeout');
         throw err;

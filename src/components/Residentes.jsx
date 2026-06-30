@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
-import { getResidentes } from '../api/n8n'
+import { getResidentes } from '../api/backend'
 import Badge from './ui/Badge'
 import Spinner from './ui/Spinner'
 

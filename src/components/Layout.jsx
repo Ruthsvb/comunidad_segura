@@ -33,7 +33,7 @@ export default function Layout({ children, user, onLogout }) {
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">COMUNIDAD<br/>SEGURA</span>
           </h1>
           <div className="bg-white/5 backdrop-blur-md rounded-xl p-3 border border-white/10 shadow-inner">
-            <p className="font-bold text-accent text-sm">{user.user_name}</p>
+            <p className="font-bold text-accent text-sm">{user.nombre} {user.apellido}</p>
             <p className="text-xs text-gray-300 font-mono mt-0.5">Unidad {user.unidad}</p>
           </div>
         </div>

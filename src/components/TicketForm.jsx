@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { createTicket } from '../api/n8n';
+import { createTicket } from '../api/backend';
 import Card from './ui/Card';
 
 export default function TicketForm({ user, onSuccess }) {

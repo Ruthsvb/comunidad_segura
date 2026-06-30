@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, Loader2, Calendar } from 'lucide-react';
-import { createReserva } from '../api/n8n';
+import { createReserva } from '../api/backend';
 import Card from './ui/Card';
 
 const ESPACIOS = [
