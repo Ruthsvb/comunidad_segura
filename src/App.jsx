@@ -8,36 +8,33 @@ import Reservas from './pages/Reservas';
 import Reclamos from './pages/Reclamos';
 import Residentes from './pages/Residentes';
 import Payments from './pages/Payments';
-
-const MOCK_USERS = [
-  { residente_id: "1", user_name: "María Soto", unidad: "101-A", email: "maria.soto@email.com" },
-  { residente_id: "2", user_name: "Jorge Pérez", unidad: "102-B", email: "jorge.perez@email.com" },
-  { residente_id: "3", user_name: "Camila Rojas", unidad: "203-A", email: "camila.rojas@email.com" },
-  { residente_id: "4", user_name: "Andrés Silva", unidad: "304-C", email: "andres.s@email.com" },
-  { residente_id: "5", user_name: "Valentina Morales", unidad: "401-A", email: "vale.m@email.com" },
-  { residente_id: "6", user_name: "Roberto Gómez", unidad: "502-B", email: "roberto.g@email.com" },
-  { residente_id: "7", user_name: "Fernanda Díaz", unidad: "603-A", email: "fer.diaz@email.com" },
-  { residente_id: "8", user_name: "Carlos Méndez", unidad: "704-C", email: "carlos.m@email.com" },
-  { residente_id: "admin", user_name: "Administrador", unidad: "Admin", email: "admin@comunidad.com", role: 'admin' },
-];
+import { login as apiLogin } from './api/backend';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (email && password) {
-      const user = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (user) {
-        const sessionUser = { ...user, session_id: crypto.randomUUID() };
-        onLogin(sessionUser);
+    setLoading(true);
+
+    try {
+      const res = await apiLogin(email, password);
+      if (res.ok) {
+        const userData = { ...res.resident, session_id: crypto.randomUUID() };
+        localStorage.setItem('jwt_token', res.token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        onLogin(userData);
       } else {
-        setError('Correo electrónico o contraseña incorrectos.');
+        setError('Credenciales inválidas');
       }
+    } catch (err) {
+      setError(err.message || 'Error al conectar con el servidor');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,12 +102,12 @@ function Login({ onLogin }) {
 
           <button
             type="submit"
-            disabled={!email || !password}
+            disabled={!email || !password || loading}
             className="w-full mt-6 relative overflow-hidden group bg-accent text-white py-4 rounded-2xl font-bold text-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-2xl hover:bg-[#E06512] hover:-translate-y-1 border border-white/10"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              Ingresar
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
+              {loading ? 'Conectando...' : 'Ingresar'}
+              {!loading && <span className="group-hover:translate-x-1 transition-transform">→</span>}
             </span>
           </button>
           
