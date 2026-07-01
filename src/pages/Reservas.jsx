@@ -183,6 +183,22 @@ export default function Reservas() {
                 </span>
               </div>
 
+              {isAdmin && selectedReserva.estado === 'pendiente' && (
+                <div className="pt-4 border-t space-y-2">
+                  <button
+                    onClick={async () => { await updateReservaEstado(selectedReserva.id, 'confirmada'); fetchReservas(); setSelectedReserva(null); }}
+                    className="w-full bg-green-100 hover:bg-green-200 text-green-800 py-2 rounded font-medium"
+                  >
+                    Confirmar Reserva
+                  </button>
+                  <button
+                    onClick={async () => { await updateReservaEstado(selectedReserva.id, 'cancelada'); fetchReservas(); setSelectedReserva(null); }}
+                    className="w-full bg-red-100 hover:bg-red-200 text-red-800 py-2 rounded font-medium"
+                  >
+                    Rechazar Reserva
+                  </button>
+                </div>
+              )}
               {(selectedReserva.estado === 'confirmada' || selectedReserva.estado === 'pendiente') && !isAdmin && (
                 <button
                   onClick={() => { handleCancelar(selectedReserva.id); }}
