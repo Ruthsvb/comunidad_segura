@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { sendChatMessage } from '../api/n8n';
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatBot({ user }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -135,45 +136,46 @@ export default function ChatBot({ user }) {
 
           {/* Área de mensajes */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background scrollbar-thin">
-            {messages.map((msg) => {
-              // Función simple para parsear negritas de Markdown (**)
-              const formatMessage = (text) => {
-                const parts = text.split(/(\*\*.*?\*\*)/g);
-                return parts.map((part, index) => {
-                  if (part.startsWith('**') && part.endsWith('**')) {
-                    return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
-                  }
-                  return <span key={index}>{part}</span>;
-                });
-              };
-
-              return (
-                <div 
-                  key={msg.id} 
-                  className={`flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {msg.sender === 'bot' && (
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-200 bg-white shadow-sm self-end mb-1">
-                      <img 
-                        src="/bot.png" 
-                        alt="Sammy" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://api.dicebear.com/9.x/bottts/svg?seed=Sammy&backgroundColor=ffffff'; }}
-                      />
-                    </div>
-                  )}
-                  <div 
-                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap shadow-sm ${
-                      msg.sender === 'user' 
-                        ? 'bg-primary text-white rounded-br-sm' 
-                        : 'bg-[#E2E8F0] text-primary rounded-bl-sm'
-                    }`}
-                  >
-                    {formatMessage(msg.text)}
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.sender === 'bot' && (
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-200 bg-white shadow-sm self-end mb-1">
+                    <img
+                      src="/bot.png"
+                      alt="Sammy"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.onerror = null; e.target.src = 'https://api.dicebear.com/9.x/bottts/svg?seed=Sammy&backgroundColor=ffffff'; }}
+                    />
                   </div>
+                )}
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                    msg.sender === 'user'
+                      ? 'bg-primary text-white rounded-br-sm'
+                      : 'bg-[#E2E8F0] text-primary rounded-bl-sm'
+                  }`}
+                >
+                  {msg.sender === 'user' ? (
+                    msg.text
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-1 space-y-0.5">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-1 space-y-0.5">{children}</ol>,
+                        li: ({ children }) => <li>{children}</li>,
+                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-[#E2E8F0] text-primary rounded-2xl rounded-bl-sm px-4 py-3">
