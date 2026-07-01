@@ -42,6 +42,7 @@ export default function ChatBot({ user }) {
         session_id: user.session_id,
         user_name: user.nombre,
         unidad: user.unidad,
+        rol: user.rol,
         email: user.email,
         residente_id: user.id
       }).catch(err => {
