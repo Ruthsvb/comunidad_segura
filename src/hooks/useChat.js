@@ -51,7 +51,8 @@ export default function useChat({ user } = {}) {
           user_name: user?.nombre || userName,
           unidad: user?.unidad || '',
           rol: user?.rol || 'residente',
-          residente_id: user?.id || null
+          residente_id: user?.id || null,
+          email: user?.email || null
         }),
         timeoutPromise
       ])

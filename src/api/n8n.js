@@ -9,11 +9,11 @@ const BASE = 'https://ruthvelasquezbe.app.n8n.cloud/webhook';
  * @param {string} params.user_name - Nombre del residente
  * @returns {Promise<Object>} Respuesta del chatbot
  */
-export async function sendChatMessage({ message, session_id, user_name, unidad, email, residente_id }) {
+export async function sendChatMessage({ message, session_id, user_name, unidad, email, residente_id, rol }) {
   const res = await fetch(`${BASE}/comunidad-segura-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, sessionId: session_id, user_name, unidad, email, residente_id })
+    body: JSON.stringify({ message, sessionId: session_id, userName: user_name, userUnidad: unidad, userRole: rol || 'residente', email, residente_id })
   });
   
   try {
