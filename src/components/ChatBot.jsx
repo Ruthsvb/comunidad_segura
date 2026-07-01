@@ -170,7 +170,7 @@ export default function ChatBot({ user }) {
                         strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       }}
                     >
-                      {msg.text}
+                      {msg.text.replace(/^• /gm, '- ')}
                     </ReactMarkdown>
                   )}
                 </div>
