@@ -35,7 +35,7 @@ export default function ChatBot({ user }) {
     try {
       // Usar timeout para fetch
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
 
       const response = await sendChatMessage({
         message: userMessage,

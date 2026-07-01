@@ -41,7 +41,7 @@ export default function useChat({ user } = {}) {
     try {
       // Timeout de 15 segundos
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('timeout')), 15000)
+        setTimeout(() => reject(new Error('timeout')), 55000)
       })
 
       const response = await Promise.race([
