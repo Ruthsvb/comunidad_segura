@@ -216,6 +216,7 @@ export default function Tickets() {
             </button>
             <h2 className="text-lg font-bold mb-4">{selectedTicket.titulo}</h2>
             <div className="space-y-3 text-sm">
+              {isAdmin && <div><span className="font-medium">Unidad:</span> <span className="text-accent font-semibold">{selectedTicket.unidad || selectedTicket.residente?.unidad || '—'}</span></div>}
               <div><span className="font-medium">Categoría:</span> {selectedTicket.categoria}</div>
               <div><span className="font-medium">Descripción:</span> {selectedTicket.descripcion}</div>
               <div className="flex gap-2">
@@ -265,6 +266,7 @@ export default function Tickets() {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Título</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Categoría</th>
+                {isAdmin && <th className="px-4 py-3 text-left text-sm font-medium">Unidad</th>}
                 <th className="px-4 py-3 text-left text-sm font-medium">Prioridad</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Fecha</th>
@@ -279,6 +281,7 @@ export default function Tickets() {
                 >
                   <td className="px-4 py-3 text-sm">{ticket.titulo}</td>
                   <td className="px-4 py-3 text-sm">{ticket.categoria}</td>
+                  {isAdmin && <td className="px-4 py-3 text-sm font-medium text-accent">{ticket.residentes?.unidad || '—'}</td>}
                   <td className="px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getPrioridadColor(ticket.prioridad)}`}>
                       {ticket.prioridad}

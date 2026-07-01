@@ -176,6 +176,7 @@ export default function Reclamos() {
             </button>
             <h2 className="text-lg font-bold mb-4">{selectedReclamo.motivo}</h2>
             <div className="space-y-3 text-sm">
+              {isAdmin && <div><span className="font-medium">Unidad:</span> <span className="text-accent font-semibold">{selectedReclamo.unidad || selectedReclamo.residente?.unidad || '—'}</span></div>}
               <div><span className="font-medium">Tipo:</span> {selectedReclamo.tipo}</div>
               <div><span className="font-medium">Descripción:</span> {selectedReclamo.descripcion}</div>
               {selectedReclamo.unidad_afectada && (
@@ -225,6 +226,7 @@ export default function Reclamos() {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Tipo</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Motivo</th>
+                {isAdmin && <th className="px-4 py-3 text-left text-sm font-medium">Unidad</th>}
                 <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Fecha</th>
               </tr>
@@ -238,6 +240,7 @@ export default function Reclamos() {
                 >
                   <td className="px-4 py-3 text-sm font-medium">{reclamo.tipo}</td>
                   <td className="px-4 py-3 text-sm">{reclamo.motivo}</td>
+                  {isAdmin && <td className="px-4 py-3 text-sm font-medium text-accent">{reclamo.residentes?.unidad || '—'}</td>}
                   <td className="px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoColor(reclamo.estado)}`}>
                       {reclamo.estado}

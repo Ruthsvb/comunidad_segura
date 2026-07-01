@@ -87,6 +87,7 @@ export default function Gastos({ user }) {
             </button>
             <h2 className="text-lg font-bold mb-4">{selectedGasto.periodo}</h2>
             <div className="space-y-3 text-sm">
+              {isAdmin && <div><span className="font-medium">Unidad:</span> <span className="text-accent font-semibold">{selectedGasto.residentes?.unidad || '—'}</span></div>}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="font-medium block">Total CLP</span>
@@ -146,6 +147,7 @@ export default function Gastos({ user }) {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Período</th>
+                {isAdmin && <th className="px-4 py-3 text-left text-sm font-medium">Unidad</th>}
                 <th className="px-4 py-3 text-left text-sm font-medium">Monto CLP</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Monto UF</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
@@ -160,6 +162,7 @@ export default function Gastos({ user }) {
                   className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 text-sm font-medium">{gasto.periodo}</td>
+                  {isAdmin && <td className="px-4 py-3 text-sm font-medium text-accent">{gasto.residentes?.unidad || '—'}</td>}
                   <td className="px-4 py-3 text-sm">${gasto.monto_total_clp?.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm">{gasto.monto_total_uf?.toFixed(2)} UF</td>
                   <td className="px-4 py-3 text-sm">

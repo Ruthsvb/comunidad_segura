@@ -174,6 +174,7 @@ export default function Reservas() {
             </button>
             <h2 className="text-lg font-bold mb-4">{selectedReserva.espacio_comun}</h2>
             <div className="space-y-3 text-sm">
+              {isAdmin && <div><span className="font-medium">Unidad:</span> <span className="text-accent font-semibold">{selectedReserva.unidad || selectedReserva.residente?.unidad || '—'}</span></div>}
               <div><span className="font-medium">Fecha:</span> {new Date(selectedReserva.fecha).toLocaleDateString()}</div>
               <div><span className="font-medium">Hora:</span> {selectedReserva.hora_inicio} - {selectedReserva.hora_fin}</div>
               <div>
@@ -206,6 +207,7 @@ export default function Reservas() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Espacio</th>
+                {isAdmin && <th className="px-4 py-3 text-left text-sm font-medium">Unidad</th>}
                 <th className="px-4 py-3 text-left text-sm font-medium">Fecha</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Hora</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
@@ -219,6 +221,7 @@ export default function Reservas() {
                   className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 text-sm font-medium">{reserva.espacio_comun}</td>
+                  {isAdmin && <td className="px-4 py-3 text-sm font-medium text-accent">{reserva.residentes?.unidad || '—'}</td>}
                   <td className="px-4 py-3 text-sm">{new Date(reserva.fecha).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm">{reserva.hora_inicio} - {reserva.hora_fin}</td>
                   <td className="px-4 py-3 text-sm">
